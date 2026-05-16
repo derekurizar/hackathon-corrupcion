@@ -2,6 +2,17 @@ import { getCollection } from '../db/collections.js';
 import type { Entity } from '../schema/index.js';
 import { getDb } from '../db/client.js';
 
+/** Shared default rollup — single source of truth for single + bulk upserts. */
+const DEFAULT_ROLLUP: Entity['rollup'] = {
+  awardCount: 0,
+  awardValue: 0,
+  buyerIds: [],
+  categoryFamilies: [],
+  firstAwardDate: '',
+  lastAwardDate: '',
+  historyAvgValue: 0,
+};
+
 /**
  * Upserts an entity's scalar fields WITHOUT ever overwriting `rollup`.
  * `rollup` is written only on insert via `$setOnInsert`; recomputeRollup()
@@ -11,15 +22,6 @@ export async function upsertEntity(
   doc: Omit<Entity, 'rollup'> & { rollup?: Entity['rollup'] },
 ): Promise<void> {
   const col = await getCollection('entities');
-  const defaultRollup: Entity['rollup'] = {
-    awardCount: 0,
-    awardValue: 0,
-    buyerIds: [],
-    categoryFamilies: [],
-    firstAwardDate: '',
-    lastAwardDate: '',
-    historyAvgValue: 0,
-  };
   await col.updateOne(
     { _id: doc._id } as never,
     {
@@ -31,10 +33,59 @@ export async function upsertEntity(
           ? { legalEntityTypeDetail: doc.legalEntityTypeDetail }
           : {}),
       },
-      $setOnInsert: { rollup: doc.rollup ?? defaultRollup },
+      $setOnInsert: { rollup: doc.rollup ?? DEFAULT_ROLLUP },
     } as never,
     { upsert: true },
   );
+}
+
+/**
+ * Bulk variant of `upsertEntity` — identical `$set` scalar / `$setOnInsert`
+ * rollup semantics (rollup never clobbered by ingest), one round-trip per
+ * call. Unordered so a single dup-key style failure never aborts the batch.
+ */
+export async function bulkUpsertEntities(
+  docs: Array<Omit<Entity, 'rollup'> & { rollup?: Entity['rollup'] }>,
+): Promise<void> {
+  if (docs.length === 0) return;
+  const col = await getCollection('entities');
+  const ops = docs.map((doc) => ({
+    updateOne: {
+      filter: { _id: doc._id },
+      update: {
+        $set: {
+          name: doc.name,
+          kind: doc.kind,
+          entityType: doc.entityType,
+          ...(doc.legalEntityTypeDetail !== undefined
+            ? { legalEntityTypeDetail: doc.legalEntityTypeDetail }
+            : {}),
+        },
+        $setOnInsert: { rollup: doc.rollup ?? DEFAULT_ROLLUP },
+      },
+      upsert: true,
+    },
+  }));
+  await col.bulkWrite(ops as never[], { ordered: false });
+}
+
+/**
+ * Bulk variant of `setEntityRollup` — writes precomputed rollups in chunks of
+ * 100 (chunking owned here so callers stay simple). `upsert:false` mirrors the
+ * single-doc `setEntityRollup` (rollup is only set on entities ingest created).
+ */
+export async function bulkSetEntityRollups(
+  entries: Array<readonly [string, Entity['rollup']]>,
+): Promise<void> {
+  if (entries.length === 0) return;
+  const col = await getCollection('entities');
+  const CHUNK = 100;
+  for (let i = 0; i < entries.length; i += CHUNK) {
+    const ops = entries.slice(i, i + CHUNK).map(([id, rollup]) => ({
+      updateOne: { filter: { _id: id }, update: { $set: { rollup } }, upsert: false },
+    }));
+    await col.bulkWrite(ops as never[], { ordered: false });
+  }
 }
 
 /**

@@ -8,7 +8,7 @@ import {
 } from '../repositories/index.js';
 import {
   getAllEntities,
-  setEntityRollup,
+  bulkSetEntityRollups,
 } from '../repositories/entities.js';
 import {
   startRun,
@@ -36,6 +36,8 @@ export interface BuildBenchmarksResult {
   entities: number;
   runId?: string;
 }
+
+const log = (m: string): void => console.error(`[benchmarks] ${m}`);
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -106,9 +108,10 @@ export async function buildBenchmarks(
 ): Promise<BuildBenchmarksResult> {
   const cfg = loadConfig();
   const config = defaultRuleConfig;
+  log(`start scope=${args.scope ?? '(auto)'} dryRun=${args.dryRun ?? false}`);
 
   if (!cfg.RUN_BENCHMARKS && !args.dryRun) {
-    console.log('[benchmarks] skipped via RUN_BENCHMARKS=false');
+    log('skipped via RUN_BENCHMARKS=false');
     return { scope: args.scope ?? '', releases: 0, entities: 0 };
   }
 
@@ -178,6 +181,7 @@ export async function buildBenchmarks(
       ...(args.scope !== undefined ? { scope: args.scope } : {}),
     })) {
       releases++;
+      if (releases % 1000 === 0) log(`corpus pass releases=${releases}`);
       const buyerId = rawToCanonical(release.buyer.id);
       const family = awardCategory(release);
       const segment = family.length >= 2 ? family.slice(0, 2) : '';
@@ -517,26 +521,25 @@ export async function buildBenchmarks(
   await upsertBenchmark(doc);
 
   // Entity rollups — exactly once per distinct entity seen (NOT recomputeRollup).
-  const writeRollup = async (
-    id: string,
-    r: RollupAccum,
-  ): Promise<void> => {
-    const rollup: Entity['rollup'] = {
-      awardCount: r.awardCount,
-      awardValue: r.awardValue,
-      buyerIds: [...r.buyerIds],
-      categoryFamilies: [...r.categoryFamilies],
-      firstAwardDate: r.firstAwardDate,
-      lastAwardDate: r.lastAwardDate,
-      historyAvgValue: r.awardCount > 0 ? r.awardValue / r.awardCount : 0,
-    };
-    await setEntityRollup(id, rollup);
-  };
-  for (const [id, r] of supplierRollup) await writeRollup(id, r);
+  // Convert accumulators to rollup entries, supplier wins over buyer for shared
+  // ids (same `supplierRollup.has(id)` skip as before).
+  const rollupEntries: Array<readonly [string, Entity['rollup']]> = [];
+  const toRollup = (r: RollupAccum): Entity['rollup'] => ({
+    awardCount: r.awardCount,
+    awardValue: r.awardValue,
+    buyerIds: [...r.buyerIds],
+    categoryFamilies: [...r.categoryFamilies],
+    firstAwardDate: r.firstAwardDate,
+    lastAwardDate: r.lastAwardDate,
+    historyAvgValue: r.awardCount > 0 ? r.awardValue / r.awardCount : 0,
+  });
+  for (const [id, r] of supplierRollup) rollupEntries.push([id, toRollup(r)]);
   for (const [id, r] of buyerRollup) {
-    if (supplierRollup.has(id)) continue; // already written
-    await writeRollup(id, r);
+    if (supplierRollup.has(id)) continue;
+    rollupEntries.push([id, toRollup(r)]);
   }
+  await bulkSetEntityRollups(rollupEntries);
+  log(`rollups written entities=${rollupEntries.length} releases=${releases}`);
 
   if (runId) {
     await setCounts(runId, {
@@ -548,6 +551,7 @@ export async function buildBenchmarks(
     await finishRun(runId);
   }
 
+  log(`done scope=${scope} releases=${releases} entities=${distinctEntities}`);
   return {
     scope,
     releases,

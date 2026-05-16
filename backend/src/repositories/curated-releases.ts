@@ -15,6 +15,24 @@ export function shouldReplace(
   return incoming.date >= stored.date;
 }
 
+/**
+ * Pure intra-batch dedup: collapse multiple records with the same `ocid` to
+ * keep-latest (via `shouldReplace`). `bulkWrite` ops don't observe each other,
+ * so without this an earlier op with a later date could be blindly overwritten
+ * by a later op with an earlier date. Order of returned candidates is not
+ * significant (filtered against stored dates downstream).
+ */
+export function collapseByOcidKeepLatest(
+  docs: CuratedRelease[],
+): CuratedRelease[] {
+  const byOcid = new Map<string, CuratedRelease>();
+  for (const d of docs) {
+    const prev = byOcid.get(d.ocid);
+    if (!prev || shouldReplace(d, prev)) byOcid.set(d.ocid, d);
+  }
+  return [...byOcid.values()];
+}
+
 export async function upsertCuratedRelease(doc: CuratedRelease): Promise<void> {
   const col = await getCollection('curatedReleases');
   const existing = await col.findOne({ ocid: doc.ocid } as never, {
@@ -22,6 +40,40 @@ export async function upsertCuratedRelease(doc: CuratedRelease): Promise<void> {
   });
   if (!shouldReplace(doc, existing as Pick<CuratedRelease, 'date'> | null)) return;
   await col.replaceOne({ ocid: doc.ocid } as never, doc as never, { upsert: true });
+}
+
+/**
+ * Bulk variant of `upsertCuratedRelease` — same keep-latest-by-`ocid`
+ * semantics (`shouldReplace`) in one batch, with one read + one write
+ * round-trip instead of N. Unordered so an unrelated op failure never aborts
+ * the batch.
+ */
+export async function bulkUpsertCuratedReleases(
+  docs: CuratedRelease[],
+): Promise<void> {
+  if (docs.length === 0) return;
+  const col = await getCollection('curatedReleases');
+
+  // Intra-batch dedup: collapse multiple records with the same ocid to
+  // keep-latest. bulkWrite ops don't observe each other, so without this the
+  // second op would blindly overwrite regardless of date.
+  const candidates = collapseByOcidKeepLatest(docs);
+  const ocids = candidates.map((d) => d.ocid);
+
+  // Fetch existing dates in one query (mirrors the findOne projection in
+  // upsertCuratedRelease).
+  const existing = (await col
+    .find({ ocid: { $in: ocids } } as never, { projection: { ocid: 1, date: 1 } })
+    .toArray()) as Array<Pick<CuratedRelease, 'ocid' | 'date'>>;
+  const storedDate = new Map(existing.map((e) => [e.ocid, { date: e.date }]));
+
+  const ops = candidates
+    .filter((d) => shouldReplace(d, storedDate.get(d.ocid) ?? null))
+    .map((d) => ({
+      replaceOne: { filter: { ocid: d.ocid }, replacement: d, upsert: true },
+    }));
+  if (ops.length === 0) return;
+  await col.bulkWrite(ops as never[], { ordered: false });
 }
 
 export async function getByOcid(ocid: string): Promise<WithId<CuratedRelease> | null> {

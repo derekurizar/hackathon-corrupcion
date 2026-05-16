@@ -38,6 +38,8 @@ export interface RunDetectionResult {
   runId?: string;
 }
 
+const log = (m: string): void => console.error(`[detection] ${m}`);
+
 const sha256 = (s: string): string =>
   createHash('sha256').update(s).digest('hex');
 
@@ -55,7 +57,7 @@ export async function runDetection(
   const cfg = loadConfig();
 
   if (!cfg.RUN_DETECTION && !args.dryRun) {
-    console.log('[detection] skipped via RUN_DETECTION=false');
+    log('skipped via RUN_DETECTION=false');
     return { scope: args.scope ?? '', signals: 0, releases: 0 };
   }
 
@@ -82,6 +84,8 @@ export async function runDetection(
     );
   }
 
+  log(`start scope=${scope}`);
+
   let runId: string | undefined;
   if (!args.dryRun) {
     runId = await startRun({ months: [], toggles: { detection: true } });
@@ -91,17 +95,23 @@ export async function runDetection(
   let releases = 0;
   let signalCount = 0;
   try {
+    const t0 = Date.now();
+    const allSignals: Signal[] = [];
+
     // Pass 1 — build the entity index (rollups + per-buyer supplier maps).
+    log(`pass1 building entity index...`);
     const entities = await getAllEntities();
     const builder = createEntityIndexBuilder(entities);
     for await (const release of iterateCuratedReleases({ scope })) {
       builder.observe(release);
     }
     const entityIndex = builder.finish();
+    log(`pass1 complete entities=${entities.length}`);
 
     if (!args.dryRun) await deleteSignalsByScope(scope);
 
     // Pass 2 — apply rules per release.
+    log(`pass2 running ${RULES.length} rules...`);
     for await (const release of iterateCuratedReleases({ scope })) {
       releases++;
       const ctx: RuleContext = {
@@ -146,10 +156,27 @@ export async function runDetection(
       });
 
       if (docs.length > 0) {
-        if (!args.dryRun) await insertSignals(docs);
+        allSignals.push(...docs);
         signalCount += docs.length;
       }
+      if (releases % 1000 === 0)
+        log(
+          `pass2 progress releases=${releases} signals=${signalCount} elapsed=${((Date.now() - t0) / 1000).toFixed(1)}s`,
+        );
     }
+
+    // Flush all accumulated signals after pass 2 is complete.
+    if (!args.dryRun && allSignals.length > 0) {
+      const CHUNK = 500;
+      for (let i = 0; i < allSignals.length; i += CHUNK) {
+        const slice = allSignals.slice(i, i + CHUNK);
+        await insertSignals(slice);
+        log(`signals flushed ${i + slice.length}/${allSignals.length}`);
+      }
+    }
+    log(
+      `done scope=${scope} releases=${releases} signals=${signalCount} elapsed=${((Date.now() - t0) / 1000).toFixed(1)}s`,
+    );
   } catch (err) {
     if (runId) {
       await appendError(runId, {

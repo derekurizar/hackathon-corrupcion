@@ -1,11 +1,13 @@
+import { statSync } from 'node:fs';
 import { loadConfig } from '../config/env.js';
 import { downloadMonth } from '../ingest/fetch.js';
 import { streamRecords } from '../ingest/stream.js';
 import { withRetry } from '../ingest/retry.js';
 import { toCuratedRelease } from '../ingest/normalize.js';
-import { extractEntities } from '../ingest/entities.js';
-import { upsertCuratedRelease } from '../repositories/curated-releases.js';
-import { upsertEntity } from '../repositories/entities.js';
+import { extractEntities, type IngestEntity } from '../ingest/entities.js';
+import type { CuratedRelease } from '../schema/curated-release.js';
+import { bulkUpsertCuratedReleases } from '../repositories/curated-releases.js';
+import { bulkUpsertEntities } from '../repositories/entities.js';
 import {
   startRun,
   markStage,
@@ -13,6 +15,8 @@ import {
   appendError,
   finishRun,
 } from '../repositories/pipeline-runs.js';
+
+const log = (msg: string): void => console.error(`[ingest] ${msg}`);
 
 export interface IngestMonthArgs {
   year: number;
@@ -56,14 +60,30 @@ export async function ingestMonth(
   const config = loadConfig();
 
   if (dryRun) {
+    log(`dry-run start year=${year} month=${month}`);
+    const t0 = Date.now();
     const zipPath = await withRetry(() => downloadMonth(year, month));
+    let sizeStr = '';
+    try {
+      sizeStr = ` bytes=${statSync(zipPath).size}`;
+    } catch {
+      /* non-fatal */
+    }
+    log(`dry-run download complete path=${zipPath}${sizeStr}`);
     let recordsIngested = 0;
     for await (const record of streamRecords(zipPath)) {
       // Normalize (validates the schema) but do not persist.
       toCuratedRelease(record, { year, month });
       extractEntities(record);
       recordsIngested++;
+      if (recordsIngested % 1000 === 0)
+        log(
+          `dry-run progress records=${recordsIngested} elapsed=${((Date.now() - t0) / 1000).toFixed(1)}s`,
+        );
     }
+    log(
+      `dry-run done records=${recordsIngested} elapsed=${((Date.now() - t0) / 1000).toFixed(1)}s`,
+    );
     return { recordsIngested };
   }
 
@@ -81,15 +101,49 @@ export async function ingestMonth(
 
   let recordsIngested = 0;
   try {
+    log(`start year=${year} month=${month} runId=${runId}`);
+    const t0 = Date.now();
+    const BATCH = 100;
+    const curatedBuf: CuratedRelease[] = [];
+    const entityBuf: IngestEntity[] = [];
+    let batchNo = 0;
+    let entitiesUpserted = 0;
+
+    const flush = async (final = false): Promise<void> => {
+      if (curatedBuf.length === 0 && entityBuf.length === 0) return;
+      batchNo++;
+      const c = curatedBuf.splice(0); // drain
+      const e = entityBuf.splice(0); // drain
+      await bulkUpsertCuratedReleases(c);
+      await bulkUpsertEntities(e);
+      entitiesUpserted += e.length;
+      log(
+        `flush batch=${batchNo}${final ? ' (final)' : ''} releases=${c.length} entities=${e.length}`,
+      );
+    };
+
     const zipPath = await withRetry(() => downloadMonth(year, month));
-    for await (const record of streamRecords(zipPath)) {
-      const curated = toCuratedRelease(record, { year, month });
-      await upsertCuratedRelease(curated);
-      for (const entity of extractEntities(record)) {
-        await upsertEntity(entity);
-      }
-      recordsIngested++;
+    let sizeStr = '';
+    try {
+      sizeStr = ` bytes=${statSync(zipPath).size}`;
+    } catch {
+      /* non-fatal */
     }
+    log(`download complete path=${zipPath}${sizeStr}`);
+    for await (const record of streamRecords(zipPath)) {
+      curatedBuf.push(toCuratedRelease(record, { year, month }));
+      for (const entity of extractEntities(record)) entityBuf.push(entity);
+      recordsIngested++;
+      if (recordsIngested % 1000 === 0)
+        log(
+          `progress records=${recordsIngested} elapsed=${((Date.now() - t0) / 1000).toFixed(1)}s`,
+        );
+      if (curatedBuf.length >= BATCH) await flush();
+    }
+    await flush(true);
+    log(
+      `done records=${recordsIngested} entities=${entitiesUpserted} elapsed=${((Date.now() - t0) / 1000).toFixed(1)}s`,
+    );
   } catch (err) {
     await appendError(runId, {
       stage: 'ingest',
