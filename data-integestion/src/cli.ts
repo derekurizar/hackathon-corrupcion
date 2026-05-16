@@ -3,10 +3,6 @@ import {
   ingestMonth,
   buildBenchmarks,
   runDetection,
-  rankAndCluster,
-  generateStory,
-  generateAudio,
-  publish,
   ensureIndexesStage,
   getMongoClient,
   closeMongo,
@@ -127,15 +123,45 @@ async function main() {
         );
         break;
       }
-      case 'generate':
-        await rankAndCluster();
-        await generateStory();
-        await generateAudio();
-        await publish();
+      case 'generate': {
+        const { generate } = await import('backend');
+        const { persistAudio } = await import('./s3-audio-adapter.js');
+        const result = await generate({
+          scope: values['scope'] as string | undefined,
+        });
+        if (result.audioItems && result.audioItems.length > 0) {
+          const bucket = process.env['AUDIO_BUCKET'] ?? '';
+          if (bucket) {
+            const audioResult = await persistAudio(result.audioItems, bucket);
+            console.error(
+              `[generate] audio uploaded=${audioResult.uploaded} skipped=${audioResult.skipped}`,
+            );
+          } else {
+            console.error(
+              '[generate] AUDIO_BUCKET not set — skipping S3 upload',
+            );
+          }
+        }
+        console.error(
+          `[generate] done cases=${result.cases} investigations=${result.investigations} skipped=${result.skipped}`,
+        );
         break;
-      case 'publish':
-        await publish();
+      }
+      case 'publish': {
+        const { rankAndCluster, publish } = await import('backend');
+        const ranked = await rankAndCluster({
+          scope: values['scope'] as string | undefined,
+        });
+        const result = await publish({
+          runId: `run-${new Date().toISOString()}`,
+          scope: ranked.scope,
+          bundles: ranked.bundles,
+        });
+        console.error(
+          `[publish] investigations=${result.investigations} skipped=${result.skipped} edition=${result.editionId}`,
+        );
         break;
+      }
       case 'ensure-indexes':
         await ensureIndexesStage();
         break;

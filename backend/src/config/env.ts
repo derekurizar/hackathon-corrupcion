@@ -30,6 +30,7 @@ const EnvSchema = z.object({
   RUN_STORY: boolEnv(true),
   RUN_AUDIO: boolEnv(true),
   RUN_PUBLISH: boolEnv(true),
+  OPUS_LEAD: boolEnv(false),
   INGEST_ONLY: boolEnv(false),
   BRAND_NAME: z.string().default('Expediente Público'),
   BRAND_TAGLINE: z.string().default(''),

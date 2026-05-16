@@ -27,3 +27,13 @@ export async function deleteSignalsByScope(scope: string): Promise<void> {
   const col = await getCollection('signals');
   await col.deleteMany({ timeWindow: scope } as never);
 }
+
+/**
+ * All signals for a scope (Area 07 rank/cluster input). Mirrors the
+ * `{ timeWindow: scope }` filter used by `deleteSignalsByScope` — the scope
+ * label is persisted on `Signal.timeWindow`.
+ */
+export async function getSignalsByScope(scope: string): Promise<Signal[]> {
+  const col = await getCollection('signals');
+  return col.find({ timeWindow: scope } as never).toArray() as Promise<Signal[]>;
+}

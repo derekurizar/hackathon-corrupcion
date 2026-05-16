@@ -12,3 +12,9 @@ export async function upsertEdition(doc: Edition): Promise<void> {
   const col = await getCollection('editions');
   await col.replaceOne({ _id: doc._id } as never, doc as never, { upsert: true });
 }
+
+/** Area 07 — append a new Edition per publish run (`_id` = run id/timestamp). */
+export async function insertEdition(doc: Edition): Promise<void> {
+  const col = await getCollection('editions');
+  await col.insertOne(doc as never);
+}

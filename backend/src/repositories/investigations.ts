@@ -81,3 +81,28 @@ export async function upsertInvestigation(doc: Investigation): Promise<void> {
   const col = await getCollection('investigations');
   await col.replaceOne({ _id: doc._id } as never, doc as never, { upsert: true });
 }
+
+/** Area 07 dedup lookup — alias of `getInvestigationByCaseKey`. */
+export async function getByCaseKey(
+  caseKey: string,
+): Promise<WithId<Investigation> | null> {
+  return getInvestigationByCaseKey(caseKey);
+}
+
+/**
+ * evidenceHash-guarded upsert (Area 07 dedup). When the caller already knows
+ * the stored hash and it equals the new doc's `evidenceHash`, the write is
+ * skipped entirely (idempotent monthly re-run). Otherwise the canonical doc is
+ * overwritten (insert or supersede with `version` already bumped by caller).
+ */
+export async function upsertInvestigationGuarded(
+  doc: Investigation,
+  existingHash?: string,
+): Promise<{ skipped: boolean }> {
+  if (existingHash !== undefined && existingHash === doc.evidenceHash) {
+    return { skipped: true };
+  }
+  const col = await getCollection('investigations');
+  await col.replaceOne({ _id: doc._id } as never, doc as never, { upsert: true });
+  return { skipped: false };
+}
