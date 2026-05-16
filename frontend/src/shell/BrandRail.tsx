@@ -5,6 +5,7 @@ import type { Chapter } from '@/_scene-contract';
 import { BRAND } from '@/brand';
 import { useArticleState } from '@/article/ArticleStateContext';
 import type { I18nKey } from '@/i18n/keys';
+import { tk } from '@/i18n/keys';
 import { cn } from '@/lib/utils';
 
 /**
@@ -76,6 +77,26 @@ export function BrandRail() {
           ))}
         </span>
       </NavLink>
+
+      {/* Site navigation — added by Area 12 */}
+      <nav aria-label={t('nav.label')} className="mt-6 mb-4 px-3">
+        {[
+          { to: '/', key: 'nav.dashboard' },
+          { to: '/newsroom', key: 'nav.newsroom' },
+          { to: '/methodology', key: 'nav.methodology' },
+        ].map(({ to, key }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              `block py-2 kicker transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-bg-panel ${isActive ? 'text-text-hi' : 'text-text-dim hover:text-text-mid'}`
+            }
+          >
+            {t(tk(key))}
+          </NavLink>
+        ))}
+      </nav>
 
       <ol className="mt-10 flex flex-col" role="list">
         {CHAPTER_ORDER.map((ch) => {

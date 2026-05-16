@@ -2,10 +2,10 @@ import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/shell/AppShell';
-import Dashboard from '@/routes/Dashboard';
-import Newsroom from '@/routes/Newsroom';
+import Dashboard from '@/views/Dashboard';
+import Newsroom from '@/views/Newsroom';
 import { ArticleShell } from '@/article/ArticleShell';
-import Methodology from '@/routes/Methodology';
+import Methodology from '@/views/Methodology';
 
 // Dev-only previews — code-split so they never ship in prod bundles.
 const Tokens = lazy(() => import('@/dev/Tokens'));
