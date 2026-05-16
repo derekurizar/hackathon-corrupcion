@@ -9,10 +9,12 @@ URL verified; `MONGODB_URI` in `.env`.
 
 ## Structure & reuse
 
-- The real ingest stage lives in **`backend/src/stages/ingest.ts`**, replacing
-  the Area 01 throwing stub and keeping the exported name `ingestMonth`. The
-  `data-integestion` `ingest` subcommand (Area 01) and a thin Lambda handler
-  (Area 02 pattern) just route to it.
+- The real ingest stage lives in **`backend/src/stages/ingest-month.ts`**,
+  replacing the Area 01 throwing stub and keeping the **canonical** exported
+  name **`ingestMonth`** (idea/07 task names; kebab file / camelCase export —
+  matches Area 01 stub + Area 02 SFN mapping). The `data-integestion`
+  `ingest` CLI **verb** (Area 01) and a thin Lambda handler (Area 02 pattern)
+  just route to it.
 - **Reuse, never duplicate:** Area 01 `loadConfig()` / `getMongoClient` /
   `CuratedReleaseSchema`; Area 03 `upsertCuratedRelease`/`shouldReplace`/
   `getByOcid`, `upsertEntity`/`recomputeRollup`, `canonicalEntityId`/
@@ -128,7 +130,7 @@ Goal: orchestrate stream → curate → guarded upserts → `pipelineRuns`;
 idempotent re-ingest; `INGEST_ONLY`.
 
 Steps:
-1. `backend/src/stages/ingest.ts` — replace the Area 01 throwing stub with
+1. `backend/src/stages/ingest-month.ts` — replace the Area 01 throwing stub with
    `ingestMonth({ year, month })`: `startRun({ months:[{year,month}],
    toggles })` → `for await (record of streamRecords(downloadMonth(...)))`:
    `toCuratedRelease` → `upsertCuratedRelease` (Area 03 guarded keep-latest by
@@ -154,7 +156,7 @@ snapshot of overlapping `ocid`s → counts stable, `getByOcid` shows the latest
 Goal: identical `ingestMonth` code path via CLI and Lambda.
 
 Steps:
-1. `backend/src/handlers/ingest.ts` (Area 02 pattern): thin Lambda handler,
+1. `backend/src/handlers/ingest-month.ts` (Area 02 pattern): thin Lambda handler,
    **type-only** `import type { Handler } from 'aws-lambda'`, parses the
    `{ year, month }` event → `ingestMonth(...)` → result; no AWS SDK.
 2. Confirm the Area 01 `data-integestion` `ingest` subcommand routes to
@@ -163,7 +165,7 @@ Steps:
 
 Verify (spec *Done*): "same code path runs via CLI and Lambda; smoke test
 both" → `pnpm --dir data-integestion cli ingest --year <Y> --month <M>`
-ingests a real month into Atlas; `backend/src/handlers/ingest.test.ts`
+ingests a real month into Atlas; `backend/src/handlers/ingest-month.test.ts`
 (mocked stream) invokes `handler({year,month})` and reaches `ingestMonth` →
 ok; `grep -rE "@aws-sdk|'aws-sdk'" backend/src` → no matches (type-only
 `aws-lambda` allowed).
@@ -174,15 +176,15 @@ ok; `grep -rE "@aws-sdk|'aws-sdk'" backend/src` → no matches (type-only
 
 `backend/src/ingest/`: `fetch.ts`, `stream.ts`, `retry.ts` (+ test),
 `normalize.ts` (+ test + `__fixtures__/compiled-release.ts`), `entities.ts`
-(+ test). `backend/src/stages/ingest.ts` (replaces stub).
-`backend/src/handlers/ingest.ts` (+ test). Edits: `backend/src/index.ts`
+(+ test). `backend/src/stages/ingest-month.ts` (replaces stub).
+`backend/src/handlers/ingest-month.ts` (+ test). Edits: `backend/src/index.ts`
 (export real `ingestMonth`), `backend/package.json` (`yauzl`, `stream-json`
 deps), `data-integestion/src/cli.ts` (`--spike`/`--dry-run` flags + `--help`),
 `data-integestion/notes/zip-spike.md`.
 
 ## Decisions locked
 
-- Stage logic `backend/src/stages/ingest.ts` (replaces Area 01 stub, same
+- Stage logic `backend/src/stages/ingest-month.ts` (replaces Area 01 stub, same
   exported `ingestMonth`); CLI/handler thin; handler type-only `aws-lambda`.
 - Reuse Area 03 repos/identity + Area 01 config/client/schema — no
   re-implementation of guarded upsert / `entityType` / canonical id /

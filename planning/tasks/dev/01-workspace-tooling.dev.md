@@ -159,14 +159,20 @@ Steps:
    cached `MongoClient` promise from `loadConfig().MONGODB_URI`; `getDb()`;
    `closeMongo()`. Minimal — **Area 03 owns the full access layer /
    repositories** (cross-ref); add `mongodb` dep.
-2. `backend/src/stages/index.ts`: async placeholders `ingest`, `benchmarks`,
-   `detect`, `generate`, `publish` — log the stage then
-   `throw new Error('not implemented — Area 04/05/07')`. Export from
-   `backend/src/index.ts`. **No AWS imports anywhere in `backend`.**
+2. `backend/src/stages/index.ts`: the **canonical 7** async stage
+   placeholders (idea/07 task names verbatim — kebab files, camelCase
+   exports): `ingestMonth`, `buildBenchmarks`, `runDetection`,
+   `rankAndCluster`, `generateStory`, `generateAudio`, `publish` — log the
+   stage then `throw new Error('not implemented — Area 04/05/07')`. Export
+   from `backend/src/index.ts`. **No AWS imports anywhere in `backend`.**
+   (`generateAudio` is a **pure util** — it is *not* a Step-Functions
+   handler; the deployed audio task = the infra glue, see Area 02 Epic 2.5.)
 3. `data-integestion/src/cli.ts`: parse `argv` with `node:util` `parseArgs`;
-   subcommands `ingest|benchmarks|detect|generate|publish` (thin wrappers
-   importing the matching fn from `backend`) + `--help` listing them + a
-   `ping` smoke subcommand: `getMongoClient()` →
+   short ergonomic subcommand **verbs** `ingest|benchmarks|detect|generate|
+   publish` (thin wrappers) → backend fns: `ingest→ingestMonth`,
+   `benchmarks→buildBenchmarks`, `detect→runDetection`, `generate` chains
+   `rankAndCluster→generateStory→generateAudio→publish`, `publish→publish`;
+   + `--help` listing them + a `ping` smoke subcommand: `getMongoClient()` →
    `db.admin().command({ ping: 1 })` → `closeMongo()` → print `ok`.
 4. `data-integestion/package.json` script
    `"cli": "node --env-file=../.env --import tsx src/cli.ts"`.
@@ -208,6 +214,11 @@ Root: `.nvmrc`, `tsconfig.base.json`, `.prettierrc`, `eslint.config.mjs`,
 - Area 01 bootstraps only `backend/` + `data-integestion/`; `infrastructure/`→
   Area 02, `frontend/`→ Area 10.
 - `@scene-contract` → `backend/src/scene-contract/` (Area 06).
+- **Canonical stage-fn names** (idea/07 verbatim): `ingestMonth`,
+  `buildBenchmarks`, `runDetection`, `rankAndCluster`, `generateStory`,
+  `generateAudio`, `publish` (kebab files / camelCase exports). CLI verbs stay
+  short with the mapping above. `generateAudio` = pure util (no audio SFN
+  handler in `backend`; deployed audio task = infra glue, Area 02 Epic 2.5).
 
 ## Risks
 

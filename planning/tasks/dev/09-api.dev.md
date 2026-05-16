@@ -95,11 +95,14 @@ Verify (spec *Done:*):
 Goal: shared response types, `lang`, consistent errors, throttling verified.
 
 Steps:
-1. `backend/src/api/dto.ts` is the **single source** of response types
-   (re-exported from `backend/src/index.ts`). The SPA obtains them via the
-   **established frontend sync pattern** (Area 10/11 concern — cross-ref, not
-   built here). `?lang` handling + the consistent error envelope applied by
-   every handler via `respond.ts`.
+1. `backend/src/api/dto.ts` is the server-side **contract source** of
+   response types (re-exported from `backend/src/index.ts`). The SPA does
+   **NOT** sync these — per the user-locked Area 10 decision, the frontend
+   **declares its own zod schemas** for the 5 responses and
+   **runtime-validates** every payload at the data-layer boundary (distinct
+   from the scene-contract hand-sync; Area 09's `dto.ts` is the contract they
+   mirror, cross-ref'd — not built here). `?lang` handling + the consistent
+   error envelope applied by every handler via `respond.ts`.
 2. Throttling/usage plan = Area 02 stage default (no auth — public data);
    optionally attach a per-route throttle to the 5 routes in the CDK edit.
 
@@ -151,8 +154,10 @@ value-bounds aggregation). Edits: `backend/src/index.ts` (export the DTOs);
   `period`**.
 - Public/read-only/no-auth/no-CORS (same-origin via CF); throttling = Area 02
   stage plan (optional per-route); `?lang` ES/EN; per-route `Cache-Control`.
-- Frontend type sharing = established copy/sync pattern (Area 10/11 — cross-
-  ref). 9.3 = Phase-4 stretch (documented, not built now).
+- Frontend API types = **frontend-owned zod schemas, runtime-validated** at
+  the boundary (user-locked Area 10 decision; **no sync** — distinct from the
+  scene-contract hand-sync). `dto.ts` is the contract they mirror. 9.3 =
+  Phase-4 stretch (documented, not built now).
 
 ## Risks
 

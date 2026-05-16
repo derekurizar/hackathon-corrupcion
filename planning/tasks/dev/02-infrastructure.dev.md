@@ -132,9 +132,14 @@ Steps:
    with exponential backoff) → `Choice runAudio` → `Map:GenerateAudio`
    (`MaxConcurrency:3`) → `Choice runPublish` → `Publish` → `Done`. An
    `INGEST_ONLY` choice short-circuits to `Done` after `Map:IngestMonth`.
-2. Each task = a `NodejsFunction` over the matching
-   `../backend/src/handlers/<stage>.ts`. Choice gates read the SSM toggle
-   params; `RankAndCluster` reads `MAX_INVESTIGATIONS_PER_RUN`.
+2. Each task = a `NodejsFunction` over the matching backend stage fn
+   (**canonical idea/07 names**): `Map:IngestMonth`→`ingestMonth`,
+   `BuildBenchmarks`→`buildBenchmarks`, `RunDetection`→`runDetection`,
+   `RankAndCluster`→`rankAndCluster`, `Map:GenerateStory`→`generateStory`,
+   `Publish`→`publish` (thin `backend/src/handlers/*` adapters). **`Map:
+   GenerateAudio` is the infra glue Lambda `infrastructure/lambda/
+   audio-glue.ts` (Epic 2.5), NOT a backend handler.** Choice gates read the
+   SSM toggle params; `RankAndCluster` reads `MAX_INVESTIGATIONS_PER_RUN`.
 3. `aws-events` `Rule`: `schedule: cron(0 6 2 * ? *)` (day 2, 06:00 UTC),
    **`enabled: false`** (an SSM/context flag flipped in **Epic 2.5** —
    Area 08 absorbed — enables it);
@@ -186,12 +191,16 @@ the EventBridge cron **enabled**.
 
 Steps:
 1. **(8.1) Task wiring & CLI parity.** Confirm each Epic-2.3 task is a thin
-   `NodejsFunction` over the proven `backend` stage — `Map:IngestMonth`→
-   `backend/src/handlers/ingest.ts` (`ingestMonth`); `BuildBenchmarks`/
-   `RunDetection`→`backend/src/stages/{benchmarks,detect}`; `RankAndCluster`/
-   `Map:GenerateStory`/`Publish`→`backend/src/stages/{rank-and-cluster,
-   generate-story,publish}` (the finer fns Area 07 exported for Step
-   Functions). No business logic in handlers.
+   `NodejsFunction` over the proven `backend` stage (**canonical idea/07
+   names**, kebab files / camelCase exports): `Map:IngestMonth`→
+   `backend/src/stages/ingest-month.ts` (`ingestMonth`); `BuildBenchmarks`→
+   `build-benchmarks.ts` (`buildBenchmarks`); `RunDetection`→
+   `run-detection.ts` (`runDetection`); `RankAndCluster`→
+   `rank-and-cluster.ts` (`rankAndCluster`); `Map:GenerateStory`→
+   `generate-story.ts` (`generateStory`); `Publish`→`publish.ts` (`publish`)
+   — the finer fns Areas 04/05/07 export for Step Functions via
+   `backend/src/index.ts`. **`Map:GenerateAudio` is NOT a backend stage/
+   handler** — see step 2. No business logic in handlers.
 2. **(8.1/7.4) Deployed `Map:GenerateAudio` S3 glue.** An
    **`infrastructure/`-owned** Lambda (entry in `infrastructure/`, imports
    `backend` `generateAudio` + `audioKey()` via the existing `file:../backend`
@@ -240,10 +249,12 @@ state machine + EventBridge rule — Epic 2.3/2.5), `lambda/audio-glue.ts`
 (Epic 2.5: `infrastructure/`-owned `Map:GenerateAudio` task — imports
 `backend` `generateAudio`/`audioKey`, writes S3), `web-placeholder/
 index.html`, `README.md`.
-`backend/src/handlers/`: `api.ts` (Epic 2.2) and one stub per stage
-(`ingest.ts`, `benchmarks.ts`, `detect.ts`, `rank.ts`, `story.ts`,
-`audio.ts`, `publish.ts`) — thin adapters over `backend` stage fns,
-type-only `aws-lambda` import (real logic lands in Areas 04/05/07). Note:
+`backend/src/handlers/`: `api.ts` (Epic 2.2) and one thin handler per
+**canonical** stage (kebab files): `ingest-month.ts`, `build-benchmarks.ts`,
+`run-detection.ts`, `rank-and-cluster.ts`, `generate-story.ts`, `publish.ts`
+— thin adapters over the backend stage fns, type-only `aws-lambda` import
+(real logic lands in Areas 04/05/07). **No backend `generate-audio` SFN
+handler** (audio = infra glue). Note:
 the deployed audio S3 **write** is the `infrastructure/lambda/audio-glue.ts`
 task, **not** `backend/src/handlers/audio.ts` (backend stays AWS-SDK-free).
 
@@ -272,6 +283,16 @@ task, **not** `backend/src/handlers/audio.ts` (backend stays AWS-SDK-free).
   Idempotency = guarded keep-latest upsert + `evidenceHash` + `audioKey`
   skip. Phase 4; gated on Phase 0–3 green + ElevenLabs + `cdk bootstrap`;
   cost-guarded by `MAX_INVESTIGATIONS_PER_RUN`.
+- **Canonical stage-fn names** (idea/07 verbatim): `ingestMonth`,
+  `buildBenchmarks`, `runDetection`, `rankAndCluster`, `generateStory`,
+  `generateAudio` (pure util — **no SFN handler**), `publish`; SFN tasks map
+  to these via thin `backend/src/handlers/*` (kebab files / camelCase
+  exports). `@aws-sdk/client-s3` is used **only** by
+  `infrastructure/lambda/audio-glue.ts`.
+- **Cross-ref (Area 05 P1 elevation):** all 23 detection rules are
+  implemented in **Phase 1** (untuned; Phase-4 = tuning only) — see
+  `dev/05-benchmarks-detection.dev.md`; affects Phase-1 build/test scope, not
+  Area 02's CDK.
 
 ## Risks
 

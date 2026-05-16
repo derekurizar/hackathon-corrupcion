@@ -18,12 +18,15 @@ Prereqs (`00-sequence.dev.md` §2): Phase 0 exit green; Area 04 has ingested
   `00-sequence.md` Phase-4 "all 23 rules tuned" gate). The spec file is
   source-of-truth and is **not edited**; this deviation is recorded here and
   noted in `00-sequence.dev.md` §4.
-- Lives **entirely in `backend/`**: `backend/src/stages/benchmarks.ts` +
-  `backend/src/stages/detect.ts` replace the Area 01 throwing stubs (same
-  exported `benchmarks`/`detect`); the engine lives in
+- Lives **entirely in `backend/`**: `backend/src/stages/build-benchmarks.ts`
+  + `backend/src/stages/run-detection.ts` replace the Area 01 throwing stubs,
+  exporting the **canonical** fns **`buildBenchmarks`/`runDetection`**
+  (idea/07 task names; kebab files / camelCase exports — matches the Area 01
+  stub list + Area 02 SFN mapping); the engine lives in
   `backend/src/detection/`. The `data-integestion` `benchmarks`/`detect` CLI
-  subcommands (Area 01) are thin wrappers; `RUN_BENCHMARKS`/`RUN_DETECTION`
-  honored via `loadConfig()`.
+  **verbs** (Area 01) are thin wrappers routing to `buildBenchmarks`/
+  `runDetection`; `RUN_BENCHMARKS`/`RUN_DETECTION` honored via
+  `loadConfig()`.
 - **Reuse, never duplicate:** Area 03 `caseKey` (`backend/src/identity`),
   `recomputeRollup` (`…/entities.ts`), pipeline-runs writer
   (`startRun`/`markStage`/`setCounts`/`appendError`/`finishRun`),
@@ -50,13 +53,16 @@ Steps:
 2. Additive Area 03 repo fns: `iterateCuratedReleases({scope})` (async cursor)
    in `…/curated-releases.ts`; `upsertBenchmark(doc)` / `getBenchmark(scopeId)`
    in `…/benchmarks.ts`.
-3. `backend/src/stages/benchmarks.ts` (replace stub) `buildBenchmarks({scope})`
+3. `backend/src/stages/build-benchmarks.ts` (replace stub) `buildBenchmarks({scope})`
    — one pass over `iterateCuratedReleases` computing: `categoryPrice`
    (median/p25/p75/count + level per family), `peerCategoryMedian`,
    `buyerMethodMix`, `nationalMethodBaseline`, `periodScope{min,max}`; `_id =
-   "scope:<min>..<max>"`; validate with Area 03 `benchmarksSchema`;
-   `recomputeRollup` (Area 03) for every entity seen (idea/02: rollups
-   recomputed here); `pipelineRuns` stage status via the Area 03 writer.
+   "scope:<min>..<max>"`; validate with Area 03 `benchmarksSchema`. **Then**
+   call `recomputeRollup(entityId)` (Area 03) **once per distinct entity seen
+   in the scope, after the single corpus pass and before writing the
+   `benchmarks` doc** (idea/02: rollups recomputed here — exactly one
+   recompute per entity per run, not per-record). `pipelineRuns` stage status
+   via the Area 03 writer.
 
 Verify:
 - spec *Done* "`benchmarks._id = scope:<min..max>`; spot-checked vs raw
@@ -145,7 +151,7 @@ Goal: apply the registry over the corpus, write idempotent signals.
 
 Steps:
 1. Additive Area 03 signals-repo fn `deleteSignalsByScope(scope)`.
-2. `backend/src/stages/detect.ts` (replace stub) `runDetection({scope})`:
+2. `backend/src/stages/run-detection.ts` (replace stub) `runDetection({scope})`:
    load `benchmarks`; build an entity index; `iterateCuratedReleases({scope})`
    → per release build `RuleContext` → run `RULES`; deterministic
    `signal_id = sha256(rule_id|ocid|scope[|idx])`; **idempotent re-run** =
@@ -166,8 +172,8 @@ Verify:
 `backend/src/detection/`: `types.ts`, `config.ts`, `confidence.ts`,
 `review-priority.ts`, `registry.ts`, `category.ts`, `rules/*.ts` (23) + tests
 (`category.test.ts`, `review-priority.test.ts`, `registry.consistency.test.ts`,
-per-rule fixture tests). `backend/src/stages/benchmarks.ts` +
-`backend/src/stages/detect.ts` (replace stubs). Additive Area 03 repo fns in
+per-rule fixture tests). `backend/src/stages/build-benchmarks.ts` +
+`backend/src/stages/run-detection.ts` (replace stubs). Additive Area 03 repo fns in
 `backend/src/repositories/{curated-releases,benchmarks,signals}.ts`. Edits:
 `backend/src/index.ts` (export real `benchmarks`/`detect`),
 `data-integestion/src/cli.ts` (`--scope`/`--year/--month` args + `--help`).

@@ -14,15 +14,22 @@ S3-write verify.
 
 - All logic in **`backend/`** (stages replace the Area 01 `generate` stub);
   the `data-integestion` `generate` CLI routes to them.
-- **`generateAudio` is pure**: ElevenLabs over HTTPS `fetch` (allowed — only
-  `@aws-sdk`/`aws-sdk` is banned in `backend`), **returns
-  `{ key, bytes, contentType }[]` + cue points**, no S3, no exists check. The
-  **caller owns S3 write + skip-if-`{caseKey,version}`-exists**: the
-  `data-integestion` CLI (dev loop, may import `@aws-sdk/client-s3` — it is
-  *not* `backend`) for Phase-2; the Area-02/08 infra Lambda glue for the
-  deployed path. `backend` stays AWS-SDK-free (purity grep unchanged). A
-  shared `audioKey(caseKey,version,lang)` is exported so callers don't
-  re-derive keys.
+- **`generateAudio` is a pure util** (defined in
+  `backend/src/generation/audio.ts`, re-exported via `backend/src/index.ts`):
+  ElevenLabs over HTTPS `fetch` (allowed — only `@aws-sdk`/`aws-sdk` is
+  banned in `backend`), **returns `{ key, bytes, contentType }[]` + cue
+  points**, no S3, no exists check. It is **NOT a Step-Functions stage/
+  handler**. The **caller owns S3 write + skip-if-`{caseKey,version}`-
+  exists**: the `data-integestion` CLI adapter (dev loop, may import
+  `@aws-sdk/client-s3` — it is *not* `backend`) for Phase-2; the **Area 02
+  Epic 2.5 infra glue Lambda** `infrastructure/lambda/audio-glue.ts` for the
+  deployed `Map:GenerateAudio` task. `backend` stays AWS-SDK-free (purity
+  grep unchanged). The shared `audioKey(caseKey,version,lang)` (same module,
+  re-exported via `backend/src/index.ts`) is used by both callers so they
+  don't re-derive keys.
+- **Canonical stage-fn names** (idea/07 verbatim, kebab files / camelCase
+  exports): `rankAndCluster`, `generateStory`, `publish` are the
+  Step-Functions stage fns; `generateAudio` is the pure util above.
 - **Reuse, never re-implement:** Area 03 `caseKey`/`evidenceHash` (locked
   normalization), pipeline-runs writer, `Investigation/Edition/DashboardStats`
   schemas (Area 03 left `es`/`en`/`scenePlan` permissive — **Area 07 fills
@@ -154,13 +161,18 @@ Steps:
    methodBreakdown/byFamily/priorityDist/trend/topBuyers per idea/06) **from
    the collections** (not incremented → no double count) via
    `dashboardStats.upsertCurrent`.
-2. `backend/src/stages/{generate-story,generate-audio,publish}.ts` + a
-   `backend/src/stages/generate.ts` orchestrator (rank→story→audio→publish)
-   honoring `RUN_STORY`/`RUN_AUDIO`/`RUN_PUBLISH` via `loadConfig()`;
-   `pipelineRuns` counts (Area 03 writer). Replace the Area 01 `generate`
-   stub; export the finer-grained stage fns from `backend/src/index.ts` for
-   Area 08 Step Functions (`Map:GenerateStory`/`Map:GenerateAudio`/`Publish`).
-   The `data-integestion` `generate` CLI chains them.
+2. `backend/src/stages/{rank-and-cluster,generate-story,publish}.ts` + the
+   pure `backend/src/generation/audio.ts` (`generateAudio`/`audioKey`) + a
+   `backend/src/stages/generate.ts` orchestrator (rank→story→audio→publish,
+   for the CLI dev loop) honoring `RUN_STORY`/`RUN_AUDIO`/`RUN_PUBLISH` via
+   `loadConfig()`; `pipelineRuns` counts (Area 03 writer). Replace the Area 01
+   stubs (canonical names `rankAndCluster`/`generateStory`/`publish`); export
+   them from `backend/src/index.ts` for **Area 02 Step-Functions tasks
+   `RankAndCluster`/`Map:GenerateStory`/`Publish`**. **`generateAudio` is a
+   pure util only — NOT a Step-Functions stage/handler**: the deployed
+   `Map:GenerateAudio` task is the infra glue (Area 02 Epic 2.5); the CLI
+   dev-loop audio S3 write is the `data-integestion` adapter (Epic 7.4). The
+   `data-integestion` `generate` CLI verb chains all four.
 
 Verify:
 - spec *Done* "`/editions/current` + `/stats` reflect the run; counts correct
@@ -174,10 +186,12 @@ Verify:
 ## Files created (at execution)
 
 `backend/src/generation/`: `rank.ts`, `prompt.ts`, `claude.ts`,
-`scene-plan.ts`, `guardrails.ts`, `anonymize.ts`, `audio.ts`, `publish.ts`,
-`editions.ts` + tests. `backend/src/stages/`: `rank-and-cluster.ts`,
-`generate-story.ts`, `generate-audio.ts`, `publish.ts`, `generate.ts`
-(replace stub). Additive Area 03 repo fns in
+`scene-plan.ts`, `guardrails.ts`, `anonymize.ts`, `audio.ts`
+(`generateAudio`/`audioKey` — pure util, **not** a SFN stage), `publish.ts`,
+`editions.ts` + tests. `backend/src/stages/`: `rank-and-cluster.ts`
+(`rankAndCluster`), `generate-story.ts` (`generateStory`), `publish.ts`
+(`publish`), `generate.ts` (CLI orchestrator) — replace the Area 01 stubs.
+**No `generate-audio.ts` stage** (audio = infra glue, Area 02 Epic 2.5). Additive Area 03 repo fns in
 `backend/src/repositories/{investigations,editions}.ts`. `data-integestion/`:
 S3 audio adapter + `generate` CLI wiring. Edits: `backend/src/index.ts`
 (export stage fns + `audioKey`), `backend/package.json` (`@anthropic-ai/sdk`),
@@ -185,10 +199,12 @@ S3 audio adapter + `generate` CLI wiring. Edits: `backend/src/index.ts`
 
 ## Decisions locked
 
-- All in `backend/`; finer stage fns (`rankAndCluster`/`generateStory`/
-  `generateAudio`/`publish`) + a `generate` orchestrator replace the Area 01
-  stub; exported for Area 08 Step Functions; CLI chains them honoring
-  `RUN_STORY/RUN_AUDIO/RUN_PUBLISH`.
+- All in `backend/`; **canonical** stage fns `rankAndCluster`/`generateStory`/
+  `publish` (Step-Functions stages, exported via `backend/src/index.ts` for
+  Area 02 Epic 2.5) + the pure util `generateAudio`/`audioKey`
+  (`backend/src/generation/audio.ts`, **not** a SFN handler) + a `generate`
+  orchestrator (CLI dev loop) replace the Area 01 stubs; CLI verb chains them
+  honoring `RUN_STORY/RUN_AUDIO/RUN_PUBLISH`.
 - `generateAudio` pure → bytes+keys+cue points; **caller owns S3 +
   exists-skip** (`data-integestion` dev loop / infra deployed); shared
   `audioKey()`; `backend` AWS-SDK-free.
