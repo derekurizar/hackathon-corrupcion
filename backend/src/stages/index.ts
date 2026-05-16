@@ -1,9 +1,6 @@
 export { ensureIndexesStage } from './ensure-indexes.js';
-
-export async function ingestMonth(..._args: unknown[]): Promise<never> {
-  console.log('[stage] ingestMonth');
-  throw new Error('not implemented — Area 04');
-}
+export { ingestMonth } from './ingest-month.js';
+export type { IngestMonthArgs, IngestMonthResult } from './ingest-month.js';
 
 export async function buildBenchmarks(..._args: unknown[]): Promise<never> {
   console.log('[stage] buildBenchmarks');

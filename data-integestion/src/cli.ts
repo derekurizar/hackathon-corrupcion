@@ -27,7 +27,12 @@ function printHelp() {
   console.log('Usage: pnpm cli <command> [options]');
   console.log('');
   console.log('Commands:');
-  console.log('  ingest       Ingest a month of Guatecompras data (→ ingestMonth)');
+  console.log(
+    '  ingest       Ingest a month of Guatecompras data (→ ingestMonth)',
+  );
+  console.log(
+    '                 --year <Y> --month <M> [--dry-run] [--spike]',
+  );
   console.log('  benchmarks   Compute benchmarks (→ buildBenchmarks)');
   console.log('  detect       Run detection rules (→ runDetection)');
   console.log('  generate     Full generation chain: rank → story → audio → publish');
@@ -44,6 +49,10 @@ async function main() {
     args: process.argv.slice(2),
     options: {
       help: { type: 'boolean', short: 'h', default: false },
+      year: { type: 'string' },
+      month: { type: 'string' },
+      'dry-run': { type: 'boolean', default: false },
+      spike: { type: 'boolean', default: false },
     },
   });
 
@@ -62,9 +71,35 @@ async function main() {
 
   try {
     switch (cmd) {
-      case 'ingest':
-        await ingestMonth();
+      case 'ingest': {
+        if (values['spike'] === true) {
+          const yr = Number.parseInt(values['year'] ?? '', 10);
+          const mo = Number.parseInt(values['month'] ?? '', 10);
+          if (Number.isNaN(yr) || Number.isNaN(mo)) {
+            console.error('ingest --spike requires --year <Y> and --month <M>');
+            process.exit(1);
+          }
+          const { runSpike } = await import('../scripts/spike-zip.js');
+          await runSpike(yr, mo);
+          break;
+        }
+        const year = Number.parseInt(values['year'] ?? '', 10);
+        const month = Number.parseInt(values['month'] ?? '', 10);
+        if (Number.isNaN(year) || Number.isNaN(month)) {
+          console.error('ingest requires --year <Y> and --month <M>');
+          process.exit(1);
+        }
+        const result = await ingestMonth({
+          year,
+          month,
+          dryRun: values['dry-run'] === true,
+        });
+        console.log(
+          `[ingest] ${year}-${month} → ${result.recordsIngested} records ingested` +
+            (result.runId ? ` (run ${result.runId})` : ' (dry-run, no DB writes)'),
+        );
         break;
+      }
       case 'benchmarks':
         await buildBenchmarks();
         break;

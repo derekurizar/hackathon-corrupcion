@@ -71,7 +71,11 @@ export function deriveEntityType(party: {
   const detail = party.legalEntityTypeDetail?.toLowerCase() ?? '';
   if (detail) {
     if (/sociedad|s\.a\.|s\.a\b|cooperativa/i.test(detail)) return 'company';
-    if (detail.includes('persona individual') || detail.includes('natural'))
+    if (
+      detail === 'individual' ||
+      detail.includes('persona individual') ||
+      detail.includes('natural')
+    )
       return 'individual';
   }
   const name = party.name ?? '';
