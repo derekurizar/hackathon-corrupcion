@@ -158,11 +158,11 @@ export function createClaudeClient(): ClaudeClient {
           return parsed;
         } catch (err) {
           if (err instanceof ClaudeParseError) throw err;
-          lastErr = err;
           if (
             isRateLimit(err) &&
             attempt < RETRY_DELAYS_MS.length
           ) {
+            lastErr = err;
             const base = RETRY_DELAYS_MS[attempt]!;
             const delay = base + Math.random() * 500;
             log(
@@ -171,11 +171,26 @@ export function createClaudeClient(): ClaudeClient {
             );
             await sleep(delay);
             continue;
+          } else {
+            // Non-rate-limit API error — log the actual service response
+            const status = (err as { status?: number }).status;
+            const message = err instanceof Error ? err.message : String(err);
+            log(
+              `api_error case=${caseKey} attempt=${attempt + 1}` +
+                (status !== undefined ? ` status=${status}` : '') +
+                ` message="${message.slice(0, 200)}"`,
+            );
+            lastErr = err;
           }
           throw err;
         }
       }
-      log(`failed case=${caseKey} all_attempts_exhausted`);
+      const finalMessage =
+        lastErr instanceof Error ? lastErr.message : String(lastErr);
+      log(
+        `failed case=${caseKey} all_attempts_exhausted ` +
+          `message="${finalMessage.slice(0, 200)}"`,
+      );
       throw lastErr instanceof Error
         ? lastErr
         : new Error(String(lastErr));

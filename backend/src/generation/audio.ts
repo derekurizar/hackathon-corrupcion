@@ -83,6 +83,16 @@ async function synthesize(
       );
       return buf;
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // HTTP errors from the !res.ok branch are already logged (status/body)
+      // just above; only log genuine network-level fetch failures here to
+      // avoid double-logging the same error.
+      if (!msg.startsWith('ElevenLabs')) {
+        log(
+          `network_error case=${ctx.caseKey} lang=${ctx.lang} ` +
+            `attempt=${attempt + 1} err="${msg.slice(0, 200)}"`,
+        );
+      }
       lastErr = err;
       if (attempt < RETRY_DELAYS_MS.length) {
         await sleep(RETRY_DELAYS_MS[attempt]!);
