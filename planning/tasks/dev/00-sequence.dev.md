@@ -10,6 +10,30 @@ folder is **execution only**. No time estimates anywhere (hackathon cadence).
 
 ---
 
+## 0. Repo structure decision (supersedes spec workspace assumptions)
+
+This repo does **not** use a pnpm workspace. The spec/idea docs assume one
+(`@core`/`@handlers`/`@scene-contract` packages, `pnpm -r`); per the project
+owner's decision the structure is **four fully isolated standalone TS
+projects**, each owned by its area:
+
+| Folder | Role | Owner area |
+|---|---|---|
+| `backend/` | **Canonical** shared code: OCDS types, `CuratedRelease` schema, config, Mongo client, all stage logic | 01 bootstrap; 03/04/05/07 |
+| `data-integestion/` | Dev-loop **CLI runner**; consumes `backend/` via `file:../backend` | 01 skeleton; 04 |
+| `frontend/` | Vite + React SPA | 10 |
+| `infrastructure/` | Single AWS CDK app | 02 |
+
+Consequences for this plan: no `@core`/`@scene-contract` alias (shared code =
+the `backend` package via a local `file:` dep); no root `pnpm -r` — every
+command is **per-folder** (`pnpm --dir <folder> …`); each area sets up only its
+own folder against shared **root config files** (`tsconfig.base.json`,
+`eslint.config.mjs`, `.prettierrc`, `.editorconfig`, `.gitignore`,
+`.env.example`). `@scene-contract` → `backend/src/scene-contract/` (Area 06).
+Where this doc says `@core` it means the `backend` package.
+
+---
+
 ## 1. How to use this folder
 
 - **Spec vs. execution split:**
@@ -49,8 +73,9 @@ folder is **execution only**. No time estimates anywhere (hackathon cadence).
 - Node 20, `pnpm`, AWS CDK CLI.
 
 ### Secrets handling
-- **Local dev loop** (`@core` CLI): `.env` only — `MONGODB_URI`,
-  `ANTHROPIC_API_KEY` now; `ELEVENLABS_*` once acquired. Defined in Area 01.3.
+- **Local dev loop** (`data-integestion` CLI over the `backend` package):
+  `.env` only — `MONGODB_URI`, `ANTHROPIC_API_KEY` now; `ELEVENLABS_*` once
+  acquired. Defined in Area 01.3.
 - **Deployed Lambdas**: Secrets Manager + SSM, set out-of-band. Defined in
   Area 02.1. CDK consumes, never stores secret values.
 
@@ -82,7 +107,7 @@ Prereqs: <from §2 of 00-sequence.dev.md that must be green>
 Goal: <one line — the observable outcome>
 Steps:
 1. <create/edit `path/to/file` — what & why>
-2. <command to run, e.g. `pnpm --filter @core test`>
+2. <command to run, e.g. `pnpm --dir backend test`>
 3. ...
 Verify: <copy the spec *Done:* line, then the exact command/observation
 that proves it (test name, CLI output, deployed URL, Mongo query)>
@@ -93,7 +118,9 @@ that proves it (test name, CLI output, deployed URL, Mongo query)>
 Rules: one Epic block per spec Epic, same numbering; Steps are ordered and
 each names a concrete artifact or command; Verify is runnable, not prose; no
 estimates; link upstream dev plans for shared types/utilities instead of
-re-describing them.
+re-describing them. **No workspace** (see §0): commands are per-folder
+(`pnpm --dir <folder> …`); there is no `@core` alias — import shared code from
+the `backend` package.
 
 ---
 
@@ -107,10 +134,12 @@ when its exit commands pass.
 - Entry: §2 prerequisites checklist all green.
 - Order: 01 → (02 ∥ 03) → 06 (06 needs 03 types).
 - Exit:
-  - [ ] `pnpm -r build` clean on stubs; `pnpm test` runs; `pnpm lint` clean
+  - [ ] per-folder `pnpm install && pnpm build` clean on stubs in `backend/`
+        and `data-integestion/`; `pnpm --dir backend test`/`lint` clean
   - [ ] `cdk synth` + `cdk deploy` create the skeleton stack; placeholder
         `index.html` served over the CloudFront URL
-  - [ ] `@core` connects to Atlas (memoized client; integration smoke green)
+  - [ ] `backend` connects to Atlas via the `data-integestion` CLI
+        (memoized client; `cli ping` smoke green)
   - [ ] all **8 collections + indexes** created (`curatedReleases`, `entities`,
         `benchmarks`, `signals`, `investigations`, `editions`,
         `dashboardStats`, `pipelineRuns`) per `../../idea/06`
@@ -150,7 +179,8 @@ when its exit commands pass.
         with the **7 core scenes** in Scroll mode, fully bilingual + 60s podcast
   - [ ] every article claim is evidence-traceable; individual suppliers
         anonymized; caveat present in text **and** audio
-  - [ ] deployed (S3/CloudFront + API + Atlas); reproducible via `@core` CLI
+  - [ ] deployed (S3/CloudFront + API + Atlas); reproducible via the
+        `data-integestion` CLI
 
 ### Phase 4 — Hardening & depth  (Areas 04/05/06/08/11/12)
 - Entry: Phase 3 exit green. Items independent/parallelizable.
@@ -158,7 +188,7 @@ when its exit commands pass.
   - [ ] full ~12-month ingest; all **23 rules** tuned on the full corpus
   - [ ] 7 high-value scene variants; `RegionMap` (stretch)
   - [ ] Area 08: EventBridge monthly safe-day cron + Step Functions wraps the
-        proven `@core` stages; stage toggles; resilience (`MaxConcurrency 3`,
+        proven `backend` stages; stage toggles; resilience (`MaxConcurrency 3`,
         429 backoff, partial-success); one end-to-end pipeline run
   - [ ] a11y (`prefers-reduced-motion`, keyboard) + perf budget (60fps,
         code-split scenes); observability; guardrail/e2e tests; copy pass
@@ -192,7 +222,7 @@ phase-gate checks pass.
 | Area | Phase | Dev plan | Build |
 |---|---|---|---|
 | 00 sequence (this) | — | ✅ | n/a |
-| 01 workspace-tooling | 0 | ⬜ | ⬜ |
+| 01 workspace-tooling | 0 | ✅ | ⬜ |
 | 02 infrastructure | 0/4 | ⬜ | ⬜ |
 | 03 core-data-model | 0 | ⬜ | ⬜ |
 | 06 scene-contract | 0/4 | ⬜ | ⬜ |
