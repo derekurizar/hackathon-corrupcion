@@ -2,15 +2,13 @@ export { ensureIndexesStage } from './ensure-indexes.js';
 export { ingestMonth } from './ingest-month.js';
 export type { IngestMonthArgs, IngestMonthResult } from './ingest-month.js';
 
-export async function buildBenchmarks(..._args: unknown[]): Promise<never> {
-  console.log('[stage] buildBenchmarks');
-  throw new Error('not implemented — Area 05');
-}
-
-export async function runDetection(..._args: unknown[]): Promise<never> {
-  console.log('[stage] runDetection');
-  throw new Error('not implemented — Area 05');
-}
+export { buildBenchmarks } from './build-benchmarks.js';
+export type {
+  BuildBenchmarksArgs,
+  BuildBenchmarksResult,
+} from './build-benchmarks.js';
+export { runDetection } from './run-detection.js';
+export type { RunDetectionArgs, RunDetectionResult } from './run-detection.js';
 
 export async function rankAndCluster(..._args: unknown[]): Promise<never> {
   console.log('[stage] rankAndCluster');

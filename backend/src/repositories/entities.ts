@@ -37,6 +37,31 @@ export async function upsertEntity(
   );
 }
 
+/**
+ * Writes a precomputed rollup onto an entity doc (Area 05). Unlike
+ * `recomputeRollup`, this does NOT run a Mongo aggregation joining on
+ * `awards.supplierIds` — that join is BROKEN for raw supplier ids
+ * (`GT-NIT-7894880`) vs canonical entity `_id`s (`GT-NIT:7894880`).
+ * `build-benchmarks` resolves raw → canonical in-memory during its single
+ * corpus pass and writes the correct rollup here, exactly once per entity.
+ */
+export async function setEntityRollup(
+  entityId: string,
+  rollup: Entity['rollup'],
+): Promise<void> {
+  const col = await getCollection('entities');
+  await col.updateOne(
+    { _id: entityId } as never,
+    { $set: { rollup } } as never,
+  );
+}
+
+/** All entity docs (Area 05 builds an in-memory `EntityIndex` from these). */
+export async function getAllEntities(): Promise<Entity[]> {
+  const col = await getCollection('entities');
+  return col.find({} as never).toArray() as Promise<Entity[]>;
+}
+
 export async function recomputeRollup(entityId: string): Promise<void> {
   const db = await getDb();
   // Aggregate from curatedReleases where this entity appears as a supplier

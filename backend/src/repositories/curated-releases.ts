@@ -28,3 +28,23 @@ export async function getByOcid(ocid: string): Promise<WithId<CuratedRelease> | 
   const col = await getCollection('curatedReleases');
   return col.findOne({ ocid } as never) as Promise<WithId<CuratedRelease> | null>;
 }
+
+/**
+ * Streams every curated release in the scope (Area 05). The scope is a single
+ * full ingested window (idea/03 §"Window"), so there is no per-month filter —
+ * the whole `curatedReleases` collection IS the scope. NEVER `.toArray()` this
+ * cursor: callers iterate one document at a time to keep memory bounded.
+ *
+ * `filter.scope` is accepted for forward-compat / symmetry with the benchmark
+ * `_id` but is not used to filter (the corpus is the scope by construction).
+ */
+export async function* iterateCuratedReleases(filter: {
+  scope?: string;
+}): AsyncGenerator<CuratedRelease> {
+  void filter.scope;
+  const col = await getCollection('curatedReleases');
+  const cursor = col.find({} as never);
+  for await (const doc of cursor) {
+    yield doc as unknown as CuratedRelease;
+  }
+}

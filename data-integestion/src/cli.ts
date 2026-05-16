@@ -34,7 +34,9 @@ function printHelp() {
     '                 --year <Y> --month <M> [--dry-run] [--spike]',
   );
   console.log('  benchmarks   Compute benchmarks (→ buildBenchmarks)');
+  console.log('                 [--scope scope:YYYY-MM..YYYY-MM] [--dry-run]');
   console.log('  detect       Run detection rules (→ runDetection)');
+  console.log('                 [--scope scope:YYYY-MM..YYYY-MM] [--dry-run]');
   console.log('  generate     Full generation chain: rank → story → audio → publish');
   console.log('  publish      Publish investigations (→ publish)');
   console.log(
@@ -51,6 +53,7 @@ async function main() {
       help: { type: 'boolean', short: 'h', default: false },
       year: { type: 'string' },
       month: { type: 'string' },
+      scope: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
       spike: { type: 'boolean', default: false },
     },
@@ -100,12 +103,30 @@ async function main() {
         );
         break;
       }
-      case 'benchmarks':
-        await buildBenchmarks();
+      case 'benchmarks': {
+        const scope = values['scope'];
+        const result = await buildBenchmarks({
+          ...(scope !== undefined ? { scope } : {}),
+          dryRun: values['dry-run'] === true,
+        });
+        console.log(
+          `[benchmarks] ${result.scope} → ${result.releases} releases, ${result.entities} entities` +
+            (result.runId ? ` (run ${result.runId})` : ' (dry-run, no DB writes)'),
+        );
         break;
-      case 'detect':
-        await runDetection();
+      }
+      case 'detect': {
+        const scope = values['scope'];
+        const result = await runDetection({
+          ...(scope !== undefined ? { scope } : {}),
+          dryRun: values['dry-run'] === true,
+        });
+        console.log(
+          `[detect] ${result.scope} → ${result.signals} signals over ${result.releases} releases` +
+            (result.runId ? ` (run ${result.runId})` : ' (dry-run, no DB writes)'),
+        );
         break;
+      }
       case 'generate':
         await rankAndCluster();
         await generateStory();

@@ -6,6 +6,7 @@ export * from './db/collections.js';
 export * from './db/ensure-indexes.js';
 export * from './stages/index.js';
 export * from './repositories/index.js';
+export * from './detection/index.js';
 export * from './identity/index.js';
 export * from './scene-contract/index.js';
 // `ScenePlanEntry` is exported by both './schema' (Area 03 persistence shape)
