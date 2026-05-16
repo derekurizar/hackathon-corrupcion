@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/shell/AppShell';
 import Dashboard from '@/routes/Dashboard';
 import Newsroom from '@/routes/Newsroom';
-import Investigation from '@/routes/Investigation';
+import { ArticleShell } from '@/article/ArticleShell';
 import Methodology from '@/routes/Methodology';
 
-// Dev-only token preview — code-split so it never ships in prod bundles.
+// Dev-only previews — code-split so they never ship in prod bundles.
 const Tokens = lazy(() => import('@/dev/Tokens'));
+const ArticlePreview = lazy(() => import('@/dev/ArticlePreview'));
 
 function RouteFallback() {
   const { t } = useTranslation();
@@ -25,7 +26,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/newsroom" element={<Newsroom />} />
-        <Route path="/investigation/:caseKey" element={<Investigation />} />
+        <Route path="/investigation/:caseKey" element={<ArticleShell />} />
         <Route path="/methodology" element={<Methodology />} />
         {import.meta.env.DEV && (
           <Route
@@ -33,6 +34,16 @@ export default function App() {
             element={
               <Suspense fallback={<RouteFallback />}>
                 <Tokens />
+              </Suspense>
+            }
+          />
+        )}
+        {import.meta.env.DEV && (
+          <Route
+            path="/dev/article"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <ArticlePreview />
               </Suspense>
             }
           />

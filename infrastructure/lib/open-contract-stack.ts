@@ -139,6 +139,26 @@ export class OpenContractStack extends Stack {
 
     // ── CloudFront Distribution ───────────────────────────────────────────────
 
+    // The API Gateway routes have NO `/api` prefix (e.g. `/stats`,
+    // `/investigations`). CloudFront forwards the FULL viewer URI to the
+    // origin (it does not strip the `/api/*` behavior's path pattern), so we
+    // rewrite the URI at the viewer-request stage to drop the leading `/api`.
+    // (`originPath` is the wrong tool — it PREPENDS, producing `/api/api/...`.)
+    const apiPathRewrite = new cloudfront.Function(this, 'ApiPathRewrite', {
+      comment: 'Strip /api prefix before forwarding to the API Gateway origin',
+      code: cloudfront.FunctionCode.fromInline(
+        `function handler(event) {
+  var request = event.request;
+  if (request.uri.indexOf('/api/') === 0) {
+    request.uri = request.uri.substring(4);
+  } else if (request.uri === '/api') {
+    request.uri = '/';
+  }
+  return request;
+}`,
+      ),
+    });
+
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(webBucket),
@@ -151,12 +171,18 @@ export class OpenContractStack extends Stack {
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         },
         '/api/*': {
-          origin: new origins.HttpOrigin(apiHost, { originPath: '/api' }),
+          origin: new origins.HttpOrigin(apiHost),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
           originRequestPolicy:
             cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+          functionAssociations: [
+            {
+              function: apiPathRewrite,
+              eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
         },
       },
       errorResponses: [

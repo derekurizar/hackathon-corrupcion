@@ -1,5 +1,7 @@
 import { Outlet } from 'react-router-dom';
+import { LazyMotion, domAnimation } from 'framer-motion';
 import { ModeProvider } from './ModeContext';
+import { ArticleStateProvider } from '@/article/ArticleStateContext';
 import { BrandRail } from './BrandRail';
 import { TransportBar } from './TransportBar';
 import { GrainOverlay } from '@/ui/GrainOverlay';
@@ -12,21 +14,25 @@ import { GrainOverlay } from '@/ui/GrainOverlay';
 export function AppShell() {
   return (
     <ModeProvider>
-      <div className="app-shell">
-        <div style={{ gridArea: 'rail' }}>
-          <BrandRail />
-        </div>
-        <main
-          style={{ gridArea: 'main' }}
-          className="overflow-y-auto bg-bg-base text-text-hi"
-        >
-          <Outlet />
-        </main>
-        <div style={{ gridArea: 'transport' }}>
-          <TransportBar />
-        </div>
-      </div>
-      <GrainOverlay />
+      <ArticleStateProvider>
+        <LazyMotion features={domAnimation} strict>
+          <div className="app-shell">
+            <div style={{ gridArea: 'rail' }}>
+              <BrandRail />
+            </div>
+            <main
+              style={{ gridArea: 'main' }}
+              className="overflow-y-auto bg-bg-base text-text-hi"
+            >
+              <Outlet />
+            </main>
+            <div style={{ gridArea: 'transport' }}>
+              <TransportBar />
+            </div>
+          </div>
+          <GrainOverlay />
+        </LazyMotion>
+      </ArticleStateProvider>
     </ModeProvider>
   );
 }
