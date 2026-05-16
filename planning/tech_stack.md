@@ -4,26 +4,35 @@ frontend:
 - Vite + React + TypeScript (static SPA → S3/CloudFront)
 - Tailwind CSS + shadcn/ui
 - Framer Motion (motion/animations)
-- Recharts (charts), React Flow (buyer→supplier graph)
-- React Router, i18next (bilingual ES/EN), TanStack Query
+- Recharts (charts), React Flow (buyer-centric relationship graph)
+- React Router (routes: `/`, `/newsroom`, `/investigation/:caseKey`,
+  `/methodology`), i18next (bilingual ES/EN), TanStack Query
 
 backend:
 - Node 20 + TypeScript
 - `@core` pure package: ingest, normalize, entity resolution, 23-rule
-  detection engine, benchmarks, ranking/dedup, story orchestration
+  detection engine + default RuleConfig, benchmarks, ranking/dedup, story
+  orchestration
 - Thin Lambda handlers (API + each Step Functions task)
-- AWS Step Functions, EventBridge, API Gateway (HTTP API)
-- Streaming JSON parse (stream-json / Big-JSON) for 100 MB+ OCDS files
-- AWS CDK (single app, all infrastructure)
+- Local CLI runner (`/scripts`) for the dev loop (no LocalStack/SAM)
+- AWS Step Functions, EventBridge (enabled monthly, safe-day cron),
+  API Gateway (HTTP API, public read-only + throttling)
+- `yauzl` (streaming unzip of the monthly ZIP in `/tmp`) + `stream-json`
+  (streaming JSON parse of 100 MB+ OCDS)
+- AWS CDK (single app, all infrastructure **except the external Atlas**)
 
 databases:
-- MongoDB Atlas — collections: `curatedReleases`, `entities`, `benchmarks`,
-  `signals`, `investigations`, `editions`, `pipelineRuns`
-  (schema: `idea/06-data-model.md`)
+- MongoDB Atlas — **external / pre-existing; NOT provisioned by CDK**.
+  Collections: `curatedReleases`, `entities`, `benchmarks`, `signals`,
+  `investigations`, `editions`, `dashboardStats`, `pipelineRuns`.
+  Authoritative collections/indexes spec: `idea/06-data-model.md`.
+  Money stored as `Number` (float64).
 
 thirds-parties:
-- Anthropic Claude — evidence-constrained bilingual story generation
-  (prompt caching on the stable system prefix)
-- ElevenLabs — 60-second ES/EN podcast narration → S3
+- Anthropic Claude — `claude-sonnet-4-6`, evidence-constrained bilingual story
+  generation, journalist tone, individual-supplier anonymization, prompt
+  caching on the stable system prefix
+- ElevenLabs — `eleven_multilingual_v2`, 60s ES/EN podcast narration with
+  **separate native voices** (`ELEVENLABS_VOICE_ES/EN`) → S3
 - Data source: Guatecompras OCDS — `https://ocds.guatecompras.gt/file/json/{YEAR}/{MONTH}`
-  (month NOT zero-padded)
+  (month NOT zero-padded; returns a ZIP)

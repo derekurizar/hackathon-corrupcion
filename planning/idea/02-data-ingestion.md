@@ -15,7 +15,8 @@ const monthlyUrl = (year: number, month: number) =>
   `https://ocds.guatecompras.gt/file/json/${year}/${month}`;
 ```
 
-Each file is large (~100 MB+, observed sample 111 MB, ~17.4k records/month).
+⚠️ **The URL returns a ZIP archive**, not raw JSON. Inside is one large JSON
+file (~100 MB+ uncompressed; observed sample 111 MB, ~17.4k records/month).
 A year ≈ ~209k records, ~700k tender documents, ~1M item attributes — most of
 which we **discard** (see selective extraction).
 
@@ -29,82 +30,99 @@ EventBridge passes the most recent month on schedule; manual invokes pass any
 ## Step Functions fan-out
 
 `ResolveMonths` produces the list of `{year,month}` targets → `Map:
-IngestMonth` runs one Lambda per month (bounded concurrency). One month per
-Lambda invocation keeps each run well under the **15 min / 10 GB** cap.
+IngestMonth` runs one Lambda per month (standard `Map`, bounded concurrency).
+One month per Lambda invocation keeps each run well under the **15 min /
+10 GB** cap.
 
-## Per-month Lambda: stream + selective extraction
+## Per-month Lambda: zip → /tmp → stream
 
-The file is too big to `JSON.parse` in memory. Stream it:
+The compressed download is modest; the uncompressed JSON is too big to
+`JSON.parse` in memory. Process it as:
 
-- Fetch with a streaming HTTP client; pipe into a streaming JSON parser
-  (`stream-json` / `Big-JSON`) over `records[]`.
-- For each `record.compiledRelease`, extract **only detection-relevant
-  fields**. **Drop** the huge noise arrays:
-  - `tender.documents[]` → keep only `count` + set of `documentType`s + min
-    `datePublished` (for the "missing/weak docs" rule).
-  - `tender.items[].attributes[]` → **drop entirely** (free text, ~1M/yr).
-  - `tender.items[]` → keep `classification.id` (UNSPSC), `classification.scheme`,
-    short `description`, `quantity`, `unit.name`.
-- Optionally write the raw monthly file to S3 `raw-cache` first so re-runs and
-  debugging don't re-download 100 MB.
+1. **Download the zip** to Lambda `/tmp` (well under the 10 GB ephemeral cap;
+   the compressed size also helps the 15-min budget). **No S3 cache.**
+2. **Open the zip with `yauzl`** (random-access; reliable for a single large
+   entry) and obtain a read stream for the JSON entry.
+3. **Stream-parse** that entry with `stream-json` over `records[]`.
+4. For each `record.compiledRelease`, extract **only detection-relevant
+   fields**. **Drop** the huge noise arrays:
+   - `tender.documents[]` → keep only `count` + set of `documentType`s + min
+     `datePublished` (for the "missing/weak docs" rule).
+   - `tender.items[].attributes[]` → **drop entirely** (free text, ~1M/yr).
+   - `tender.items[]` → keep `classification.id` (UNSPSC),
+     `classification.scheme`, short `description`, `quantity`, `unit.name`.
 
 ### Fields kept per curated release (drives every rule)
 
 ```txt
-ocid, id, date, publishedDate
+ocid, id, date, publishedDate, year, month
 buyer { id, name }
 tender {
   id, title, statusDetails, procurementMethodDetails,
   mainProcurementCategory, numberOfTenderers,
   datePublished, tenderPeriod.startDate, tenderPeriod.endDate?,
   items: [{ classificationId, scheme, description, quantity, unitName }],
+  itemFamilies: [<4-digit UNSPSC families, derived>],
   documentsSummary { count, types[], firstDatePublished? }
 }
-bids.detailsSummary { count, validCount, disqualifiedCount,
-                       tendererIds[], amounts[] }
+bids: [{ status, amount, tendererId }]            // one entry per bid
+bidCounts { count, valid, disqualified }          // derived convenience
 awards: [{ id, date, status, statusDetails, value{amount,currency},
            supplierIds[] }]
 contracts: [{ id, awardID, dateSigned, value{amount,currency},
               period{start,end}, documentsCount, contractNumber }]
-region   // from parties[].address.region of buyer (stored, UI is stretch)
+region   // from the buyer party's address.region (stored; UI is stretch)
 ```
 
-Use the existing `../assets/guatecompras_observed_types.ts` verbatim as the
-**input** types; the curated shape above is the **stored** type
-(see `06-data-model.md`).
+`bids` keeps one compact entry per bid (`{ status, amount, tendererId }`,
+avg 2.1, max 23) so rules 5/10/17 retain the status→amount→tenderer linkage.
+Money `amount` = `Number` (float64). Use
+`../assets/guatecompras_observed_types.ts` verbatim as the **input** types;
+the curated shape above is the **stored** type (see `06-data-model.md`).
 
 ## Normalization & entity resolution
 
 - **Canonical entity id** = `identifier.scheme + ':' + identifier.id` (e.g.
   `GT-NIT:7894880`, `GT-GCID:CO-0D13...`). All grouping (concentration, repeat
-  winners, splitting) joins on this id — **never on names** (names are dirty,
-  e.g. `DE LEON,MALDONADO,,CESAR,AUGUSTO`).
-- **Entity type**: company vs individual via
-  `parties[].details.legalEntityTypeDetail.description`
-  (`INDIVIDUAL` vs `SOCIEDAD ANÓNIMA`/etc.) and `entityType`/`level`.
-- Money: store `amount` as a decimal-safe number + `currency` (always `GTQ`
-  observed). Dates: keep ISO strings; derive `year`, `month` for windowing.
-- Build/update an `entities` upsert per buyer & supplier seen (rollups updated
-  incrementally or recomputed in `BuildBenchmarks`).
+  winners, splitting) joins on this id — **never on names**.
+- **Entity names are stored raw / verbatim.** No masking at ingestion.
+  Anonymization of natural persons happens at the LLM/story layer (`04`).
+- **Entity type hint** per entity: use
+  `parties[].details.legalEntityTypeDetail.description` when present (~41.7%);
+  else infer from a name-pattern / keyword heuristic
+  (`LASTNAME,LASTNAME,,FIRSTNAME,` ⇒ individual; `S.A.`/`SOCIEDAD ANÓNIMA`/
+  `COOPERATIVA` ⇒ company); else `unknown`. **`unknown` is treated as
+  individual (privacy-safe) by the anonymization step.** Stored as
+  `entities.entityType` (`company | individual | unknown`) plus the raw
+  `legalEntityTypeDetail`.
+- Money: `Number` + `currency` (always `GTQ` observed). Dates: keep ISO
+  strings; derive `year`, `month` for the dashboard trend.
+- Upsert an `entities` doc per buyer & supplier seen; rollups recomputed in
+  `BuildBenchmarks`.
 
-## Idempotency (critical — re-runs accumulate, never duplicate)
+## Idempotency — keep latest, never duplicate
 
-- `curatedReleases` upserted by `ocid` (`replaceOne(..., {upsert:true})`).
+- `curatedReleases` keyed by `ocid`. The same `ocid` reappears across monthly
+  files as a tender progresses (tender → award → contract). **Guarded
+  upsert:** write only if the incoming `compiledRelease.date` (fallback
+  `publishedDate`) is **≥ the stored value**. This keeps the most complete
+  state and makes re-ingesting any month, in any order, safe.
 - `entities` upserted by canonical id.
-- A `pipelineRuns` doc records `{year,month}` ingested + counts; dashboard
-  totals are computed from `curatedReleases`, not by incrementing counters, so
-  re-ingesting a month is safe.
+- A `pipelineRuns` doc records `{year,month}` ingested + counts. Dashboard
+  totals are computed from `curatedReleases`/`investigations` (or the
+  precomputed `dashboardStats` snapshot — see `07`), not by incrementing
+  counters, so re-ingesting a month is safe.
 
 ## Stage toggles
 
 `Map: IngestMonth` always runs when invoked. `INGEST_ONLY=true` (or all
 `run*` flags false) makes Step Functions skip `BuildBenchmarks` →
-`Publish`, so the operator can load many months first, then run one full
+`Publish`, so the operator can bulk-load many months first, then run one full
 pass. See `07-pipeline.md` for the Choice-state wiring.
 
 ## Failure handling
 
-- Per-month task: retry with backoff (network/streaming failures), `Catch` to
-  a failure-collector so one bad month doesn't abort the whole `Map`.
+- Per-month task: retry with backoff (network/stream/unzip failures), `Catch`
+  to a failure-collector so one bad month doesn't abort the whole `Map`.
 - Partial success allowed: benchmarks/detection run over whatever months are
   present in the DB.

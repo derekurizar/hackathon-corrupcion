@@ -3,26 +3,27 @@
 ## Step Functions state machine
 
 ```txt
-EventBridge (monthly schedule)  ──┐
-manual invoke {year,month, flags} ─┴─▶ StateMachine
+EventBridge (monthly, ENABLED, safe-day cron)  ──┐
+manual invoke {year,month, flags}               ─┴─▶ StateMachine
 
 ResolveMonths
-  → Map: IngestMonth           (per {year,month}; stream + curate; idempotent)
+  → Map: IngestMonth           (per {year,month}; zip→/tmp→yauzl→stream; idempotent)
   → Choice: runBenchmarks?  ── no ─┐
       └ yes → BuildBenchmarks      │
   → Choice: runDetection?   ── no ─┤
       └ yes → RunDetection         │   (apply 23 rules → signals)
   → Choice: runStory?       ── no ─┤
-      └ yes → RankAndCluster       │   (caseKey grouping, top-N)
-              → Map: GenerateStory │   (Claude, ES+EN; evidenceHash skip)
+      └ yes → RankAndCluster       │   (caseKey = sha(buyer.id|family|scope), top-N)
+              → Map: GenerateStory │   (Claude Sonnet 4.6, ES+EN; evidenceHash skip)
   → Choice: runAudio?       ── no ─┤
-      └ yes → Map: GenerateAudio   │   (ElevenLabs 60s ES+EN → S3)
+      └ yes → Map: GenerateAudio   │   (ElevenLabs 60s ES+EN, native voices → S3)
   → Choice: runPublish?     ── no ─┤
-      └ yes → Publish              │   (upsert investigations, build Edition)
+      └ yes → Publish              │   (upsert investigations + Edition + dashboardStats)
   → Done ◀─────────────────────────┘
 ```
 
-Each task = a Lambda wrapping `@core` logic (no AWS imports in core).
+Each task = a Lambda wrapping `@core` logic (no AWS imports in core). All
+`Map` states are **standard `Map`** (no Distributed Map / no nested sharding).
 
 ## Stage toggles (SSM, read by Choice states)
 
@@ -33,49 +34,57 @@ Each task = a Lambda wrapping `@core` logic (no AWS imports in core).
 | `runDetection` | Gate `RunDetection` |
 | `runStory` | Gate `RankAndCluster` + `Map: GenerateStory` |
 | `runAudio` | Gate `Map: GenerateAudio` |
-| `runPublish` | Gate `Publish` |
+| `runPublish` | Gate `Publish` (writes investigations, Edition, `dashboardStats`) |
 | `MAX_INVESTIGATIONS_PER_RUN` | Top-N cap in `RankAndCluster` (default ~20) |
 
-Typical bulk workflow: invoke per month with `INGEST_ONLY=true` (Jan…Dec),
+Typical bulk workflow: invoke per month with `INGEST_ONLY=true` (12 months),
 then one invoke with all `run*=true` and no `INGEST_ONLY` to process the full
-accumulated DB.
+accumulated DB. (Demo data target: full ~12 months pre-loaded — see `08`.)
 
 ## Resilience
 
 - `Map: IngestMonth`: bounded concurrency, retry w/ backoff on
-  network/stream errors, `Catch` → failure collector (one bad month doesn't
-  abort the run; benchmarks/detection proceed over present data).
-- `Map: GenerateStory`/`GenerateAudio`: per-item retry; on hard failure skip
-  that case (logged in `pipelineRuns.errors`), continue others.
-- All stages idempotent (upserts + `evidenceHash`/audio-key skips) → safe to
-  re-run.
+  network/stream/unzip errors, `Catch` → failure collector (one bad month
+  doesn't abort the run; later stages proceed over present data).
+- `Map: GenerateStory` / `GenerateAudio`: **`MaxConcurrency: 3`** +
+  exponential backoff/retry on HTTP **429** (Anthropic/ElevenLabs rate
+  limits); on hard failure skip that case (logged in `pipelineRuns.errors`),
+  continue others.
+- All stages idempotent (guarded keep-latest upsert + `evidenceHash`/audio-key
+  skips) → safe to re-run.
 
 ## EventBridge
 
-Monthly rule passes the latest `{year,month}` with default flags
-(full pass). Manual invokes (CLI/console) pass any `{year,month}` and override
-flags for bulk loading or partial re-runs.
+A **monthly rule, enabled**, passes the latest `{year,month}` with default
+flags (full pass). The cron is set to a **fixed safe day/time**
+(e.g. day 2, 06:00) so it cannot fire during the demo window. Manual invokes
+(CLI/console) pass any `{year,month}` and override flags for bulk loading or
+partial re-runs (the build/demo path).
 
 ## API (API Gateway HTTP API + Lambda)
 
-All read-only; reads MongoDB Atlas; `lang` query param selects ES/EN payload.
+Public, **read-only**, with an API Gateway **throttling / usage plan**. Reads
+the external Atlas; `lang` query param selects ES/EN payload.
 
 | Method · Path | Purpose | Notes |
 |---|---|---|
-| `GET /stats` | Dashboard radar aggregates | computed from `curatedReleases`/`investigations` (method mix, counters, by-family, priority dist, trend) |
-| `GET /editions/latest` | Latest Edition + its investigation cards | `?lang=` |
-| `GET /editions/{id}` | A specific past edition | |
-| `GET /investigations` | Newsroom feed w/ filters | `?family&method&buyer&minValue&maxValue&period&priority&q&page&lang` |
+| `GET /stats` | Dashboard radar | reads the precomputed `dashboardStats` snapshot (single fast read) |
+| `GET /editions/current` | The featured Edition (lead + highlights) | `?lang=` |
+| `GET /investigations` | Newsroom feed — **all current** | filters `?family&priority&buyer&minValue&maxValue&q&page&lang` (no `period`); sort priority→recency→value |
 | `GET /investigations/{caseKey}` | Full article: story, signals, evidence, graph data, audio URLs | `?lang=` |
-| `GET /filters` | Facet values for the feed filter UI | |
+| `GET /filters` | Facet values (family, priority, buyers, value bounds) | |
+| `GET /editions/{id}` | A specific past edition | **stretch** |
 | `GET /entities/{id}` | Entity drill-down | **stretch** |
 
-Audio served from S3 via CloudFront `/audio/*` (public read for the demo);
-URLs returned in the investigation payload.
+Feed filters work off **denormalized fields on `investigations`** (`ruleIds`,
+`signalFamily`, `reviewPriority`, `buyer`, `totalValue`). `method` is only
+reachable via denormalized `ruleIds`. Audio served from S3 via CloudFront
+`/audio/*` (public read); URLs returned in the investigation payload.
 
-## Local invocation (fast iteration, still AWS-native)
+## Local invocation (fast iteration, AWS-native target)
 
-Because handlers are thin over `@core`, each task is invocable locally
-(direct function call / SAM local) against Atlas — used during the 48h build
-to iterate detection/story logic without redeploying Step Functions each time.
-The deployed target remains the Step Functions pipeline.
+Handlers are thin over `@core`, so each stage's logic is run via the **local
+Node CLI runner** (`/scripts`) against the **real pre-existing Atlas** during
+the build (**no SAM local, no LocalStack**). Step Functions is the deployed
+integration target; build order = local `@core` per stage, then wrap as a
+Lambda task (see `08`).

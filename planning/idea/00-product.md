@@ -25,6 +25,14 @@ contract is illegal", "the system detected wrongdoing".
 > patterns that deserve further review by journalists, auditors, civil
 > society, or institutions.*
 
+## Lead persona & voice
+
+The **primary persona is the investigative journalist**. The story voice is a
+**newsroom lead/nut-graf** style: evidence-forward, precise, sober. Citizens
+are served through the plain-language summary and the 60-second podcast;
+auditors/civil society through the evidence panel and methodology page. All UI
+copy follows the same journalist-investigative tone.
+
 ## Ethical & legal guardrails (enforced in code + prompts)
 
 - Every claim in an article must be backed by an evidence item with the exact
@@ -33,9 +41,20 @@ contract is illegal", "the system detected wrongdoing".
   signals are indicators, not proof.
 - Risk is shown as **Review Priority (High/Med/Low) + the list of fired
   signals** — never a single "corruption score".
-- Banned-phrase list is part of the story-generation prompt and is asserted in
-  a post-generation check; regenerate or fall back to the deterministic
-  summary on violation.
+- **Individual-supplier anonymization.** Buyers and company suppliers are
+  named. **Natural-person suppliers** (entity type *individual*) are
+  **anonymized** in all public output — rendered as "an individual supplier"
+  (ES: "un proveedor individual") in headline/body/podcast/graph labels. The
+  personal name and canonical id stay **internal only** (never in the
+  published investigation, the article API payload, or any UI label).
+  Anonymization is performed at the **LLM/story layer** (prompt +
+  deterministic post-check); raw names are stored verbatim only in the
+  internal collections (`curatedReleases`/`entities`/`signals`) — see `04`/`06`.
+- **Guardrail-fail behavior.** If the post-generation check trips
+  (banned phrase, an unbacked claim, or a personal name leaking for an
+  individual), retry generation once with a stricter instruction; if it still
+  fails, publish the **deterministic evidence-only summary** built directly
+  from the signals. This never blocks the pipeline or the demo.
 - Entities are public institutions and awarded suppliers already published in
   Guatecompras; no private data is introduced.
 
@@ -52,9 +71,12 @@ expected to change; swapping `BRAND` + i18n must be sufficient.
 
 ## Target users
 
-- **Journalists** — find leads fast, with traceable evidence to investigate.
-- **Citizens** — understand where public money goes, in plain language + audio.
-- **Auditors / civil society** — prioritize which contracts to review.
+- **Journalists (primary)** — find leads fast, with traceable evidence and a
+  defensible newsroom narrative.
+- **Citizens** — understand where public money goes via the plain summary +
+  podcast.
+- **Auditors / civil society** — prioritize which contracts to review using
+  the evidence panel and methodology page.
 
 ## Demo hero
 
@@ -63,6 +85,13 @@ capturing a large share of an institution's awarded value, reinforced by
 low-competition and direct-award signals — shown as the full-anatomy
 Investigation Article with a 60-second bilingual podcast. See
 `08-scope-and-demo.md`.
+
+## Trust surface
+
+In addition to the per-article methodology/caveat footer, a dedicated
+**Methodology / About page** (`/methodology`) explains the data source,
+period covered, how detection works, limitations, and the "signals not proof"
+stance. Linked from the header and every article footer. (See `05`.)
 
 ## Non-goals (MVP)
 
