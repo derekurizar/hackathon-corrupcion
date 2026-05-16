@@ -1,117 +1,91 @@
-# 08 — Scope, 48h Sequencing & Demo
+# 08 — Scope & Build Phases
 
-Solo, 48h, AWS-native. Strategy: **thin vertical slice first** (one real
-investigation end-to-end), then breadth. Never let the demo depend on a live
-pipeline run — everything is pre-generated and stored.
+We are building a **good product**, not optimizing for a demo. The
+authoritative, dependency-ordered build order lives in
+`../tasks/00-sequence.md` (Phases 0–4) with per-area task files. This file
+gives the scope frame, the product risks, and a **non-driving** demo
+walkthrough kept only as a reference.
 
-**Dev-loop:** for each stage, build & verify the `@core` logic via the local
-CLI runner against the **real (pre-existing) Atlas**, then wrap it as a
-Lambda/Step Functions task. Fast iteration, AWS-native target preserved.
+Constraints remain real (solo build, AWS-native), but they are expressed as
+**product increments**, not a demo target.
 
-## Where the polish goes
+**Dev-loop:** for each `@core` stage, build & verify via the local CLI runner
+against the **real (pre-existing) Atlas**, then wrap it as a Lambda /
+Step Functions task. Fast iteration, AWS-native target preserved.
 
-Judging rewards **civic impact + storytelling + design/UX wow**. Bias the 48h
-budget to: narrative quality, the `/methodology` "signals not proof" framing,
-the bilingual podcast, accessible copy, AND motion polish (animated hero,
-relationship graph, dashboard visuals). **Technical breadth is secondary** —
-the 4 core rules + a few high-signal ones are enough; **"all 23 rules" is a
-stretch**, and saved time is reinvested into polish.
+## Where the effort goes
 
-## Build sequencing
+Quality bar emphasizes **civic impact + storytelling + design/UX wow**:
+narrative quality, the `/methodology` "signals not proof" framing, the
+bilingual podcast, accessible copy, and motion polish (animated hero,
+relationship graph, dashboard visuals). Rule **breadth** is depth, not the
+gate — the core rules carry the product; the rest is Phase 4.
 
-1. **Skeleton** — single CDK app: S3 (web/audio), CloudFront, API Gateway +
-   one Lambda; `@core` connects to the existing Atlas via `MONGODB_URI`
-   secret (**Atlas not provisioned by CDK**). Vite SPA "hello" deployed.
-2. **Ingest** — `IngestMonth` (zip→/tmp→yauzl→stream, drop docs/attributes),
-   guarded keep-latest upsert to `curatedReleases` + `entities`. Verify a few
-   months; full ~12 months is the target (bulk `INGEST_ONLY`), thin slice
-   only as a fallback.
-3. **4 core rules** — `single_bidder` (1), `direct_award_overreliance` (3),
-   `price_outlier_vs_category` (13), `supplier_concentration_per_buyer` (7).
-   Plus `BuildBenchmarks`. Produce real `signals`.
-4. **One hero case** — `RankAndCluster` → `caseKey` (buyer|F2|scope);
-   `GenerateStory` (Claude Sonnet 4.6, ES+EN, anonymized) for the top
-   supplier-concentration case; `Publish` → `investigations` + Edition +
-   `dashboardStats`.
-5. **Cinematic Article (THE core WOW)** — build the noir design system +
-   the **chapter spine** (Cover · El Caso · Sigue el Dinero · Las Conexiones ·
-   Evidencia · Cronología · Cierre), the **7 core Scene-Catalog scenes**
-   (one default per chapter — guarantees it always renders), the
-   `ScenePicker` (renders `scenePlan`, falls back to default), and **Scroll
-   mode**. Render the hero case end-to-end. **Pour the polish budget here.**
-   Then **Presentation mode**, then **Podcast mode** (approx cue-point
-   auto-advance), in that priority.
-6. **Newsroom + Dashboard** — restyled to the same noir system with lighter
-   motion: feed = all investigations as dossier cards + Edition banner +
-   filters; Dashboard "war room" radar from `dashboardStats` (94.5% stat,
-   counters, distributions); `/methodology` page.
-7. **Bilingual + podcast** — i18n wired; `GenerateAudio` (ElevenLabs 60s,
-   separate native ES/EN voices); transport-bar player; language toggle
-   switches text + audio (+ cue points).
-8. **Remaining rules** — fill out the rest of the 23 (engine is pluggable).
-   *(Stretch — only if polish budget allows.)*
-9. **Widen ingestion** — confirm full ~12-month load (`INGEST_ONLY` bulk),
-   one full processing pass; richer feed + bigger radar numbers.
-10. **Polish** — motion, copy, guardrail check, demo dry-run.
+## First usable product increment (end of Phase 3)
 
-**MVP floor (guaranteed deliverable):** stop after step 7 — one polished
-bilingual supplier-concentration investigation end-to-end + Dashboard radar +
-60s podcast, deployed. Everything after is upside.
+The product is usable (the increment that matters — **not** a demo) when, from
+real ingested data:
 
-## Core vs stretch
+- ingestion → benchmarks → detection → generation has run for ≥ several
+  months;
+- the SPA serves the **Dashboard** (radar from `dashboardStats`), the
+  **Newsroom** (all current investigations + current Edition), and the
+  **cinematic Article** with the **7 core scenes** in Scroll mode, fully
+  bilingual with the 60s podcast;
+- every article claim is evidence-traceable; individual suppliers anonymized;
+  the caveat is present in text + audio;
+- it is deployed (S3/CloudFront + API + external Atlas) and reproducible via
+  the `@core` CLI and (Phase 4) the Step Functions pipeline.
 
-**Core (must ship):** ingest (target ~12 months), ≥4 rules, hero
-supplier-concentration investigation (ES/EN + podcast), the **cinematic
-chaptered Article** with the design system + the **7 core Scene-Catalog
-scenes** + `ScenePicker` + default fallback + **Scroll & Presentation
-modes**, Newsroom + Dashboard restyled, `/methodology` page, dedup,
-AWS-native deploy.
+See `../tasks/00-sequence.md` for the full phase/exit criteria.
 
-**In scope after core (7 high-value scene variants):** `CaseSplit`,
-`PriceBars`, `ThresholdLadder`, `SplittingCluster`, `RepeatBidders`,
-`EvidenceCompare`, `GapSpotlight`.
+## Core vs depth
 
-**Stretch:** `RegionMap`/geo scene; Podcast-mode chapter auto-advance
-refinement; all 23 rules; past-editions browsing; multi-case "digest"
-articles; `GET /entities/{id}` & `GET /editions/{id}`; Opus 4.7 for the hero
-only; on-demand generation.
+**Core (Phases 0–3 — the usable product):** workspace+infra+`@core`+data
+model, the **scene contract**, ingest (≥ several months), benchmarks +
+detection (≥ the high-signal rules), generation (bilingual + podcast + dedup +
+Editions + `dashboardStats`), API, the cinematic chaptered Article with the
+**7 core scenes** + `ScenePicker` + default fallback + Scroll & Presentation
+modes, Newsroom + Dashboard + `/methodology`, AWS-native deploy.
 
-## Demo script (~3 min)
+**Depth (Phase 4):** full ~12-month ingest; all 23 rules; the **7 high-value
+scene variants** (`CaseSplit`, `PriceBars`, `ThresholdLadder`,
+`SplittingCluster`, `RepeatBidders`, `EvidenceCompare`, `GapSpotlight`);
+Step Functions pipeline + EventBridge; a11y/perf; observability;
+podcast-mode auto-advance refinement.
 
-1. **Dashboard** (landing) — animated counters; the punchline chart:
-   **≈94.5% of procurement is direct purchase**; signals-by-family; priority
-   distribution.
-2. **Newsroom** — featured Edition banner; scan the cards; apply a filter
-   (e.g. F2 / high priority).
-3. **Cinematic Investigation Article** — open the hero. **Scroll mode**:
-   cover (parallax + value count-up) → El Caso → Sigue el Dinero → Las
-   Conexiones (graph builds in) → Evidencia (claims trace to exact OCDS
-   fields + benchmark) → Cronología (honest "no public data" markers) →
-   Cierre. Emphasize *signals, not proof*; show `/methodology`.
-4. **Presentation mode** — toggle: full-screen cinematic chapters, advance
-   with arrows. The "wow" reveal.
-5. **Podcast mode** — "Escuchar": 60s ES narration (native voice), chapters
-   auto-advance on approximate cue points. Toggle to **EN** — UI + story +
-   audio + cue points all switch. Close on the Cierre caveat.
+**Stretch:** `RegionMap`/geo scene; past-editions browsing; multi-case
+"digest" articles; `GET /entities/{id}` & `GET /editions/{id}`; Opus 4.7 for
+the lead investigation only; on-demand generation.
 
-## Risks & mitigations
+## Product risks & mitigations
 
 | Risk | Mitigation |
 |---|---|
-| AWS infra eats time (solo, 48h) | One CDK app; **Atlas external/pre-existing (not in IaC)**; public SRV + open allowlist + strong creds (no VPC/NAT); thin handlers over testable `@core`; local CLI runner |
-| 100 MB+ zip blows Lambda limits | Per-month fan-out; zip→/tmp→yauzl→stream; drop docs/attributes (`02`); compressed download helps the budget |
-| Live pipeline fails on stage | Everything pre-generated & stored; demo reads DB/S3 only; EventBridge cron on a safe day so it can't fire mid-demo |
+| AWS infra time sink | One CDK app; **Atlas external/pre-existing (not in IaC)**; public SRV + open allowlist + strong creds (no VPC/NAT); thin handlers over testable `@core`; local CLI runner |
+| 100 MB+ zip vs Lambda limits | Per-month fan-out; zip→/tmp→yauzl→stream; drop docs/attributes (`02`); compressed download helps the budget |
+| Pipeline failure | Everything pre-generated & stored; UI reads DB/S3 only; EventBridge on a safe-day cron; stages idempotent |
 | LLM hallucination / accusation / name leak | Evidence-constrained prompt + banned-phrase + evidence-mapping + individual-name post-checks; retry once → deterministic fallback (`04`) |
-| Sparse data for some rules | Hero relies on full-scope concentration; single-month-capable rules (1,5,15,17,20,21,22) cover the thin slice |
+| Sparse data for some rules | Concentration uses full-scope history; single-month-capable rules (1,5,15,17,20,21,22) still fire on a thin slice |
 | Cost (Claude/ElevenLabs) | `MAX_INVESTIGATIONS_PER_RUN` guard + Map concurrency 3 + prompt caching + `evidenceHash` skip |
 | Bilingual doubles content | Single Claude call returns ES+EN+scripts; pre-rendered, not on-demand |
-| Cinematic UI / scene catalog scope (solo 48h) | **Finite** Scene Catalog (no generative engine); 7 core scenes = MVP with a **guaranteed default per chapter** so the Article always renders; 7 variants after core; geo scene + podcast-sync refinement = stretch; build Scroll → Presentation → Podcast |
-| LLM picks a scene that misreads data | Rule-filtered shortlist bounds choices + **evidence-binding param validation** rejects any number/label not traceable to a signal; on fail → deterministic default scene (`source:"fallback"`) |
-| Animation jank in live demo | transform/opacity-only motion, `content-visibility`, code-split scenes, `prefers-reduced-motion` path; rehearse on the demo machine |
+| Cinematic UI / scene catalog scope | **Finite** Scene Catalog (no generative engine); 7 core scenes with a **guaranteed default per chapter**; 7 variants are Phase-4 depth; build Scroll → Presentation → Podcast |
+| LLM picks a scene that misreads data | Rule-filtered shortlist + **evidence-binding validation** (`05` Scene contract); fail → deterministic default scene (`source:"fallback"`) |
+| Animation jank | transform/opacity-only motion, `content-visibility`, code-split scenes, `prefers-reduced-motion` path |
 
-## Definition of done (demo-ready)
+## Appendix — demo walkthrough (non-driving reference)
 
-Hero supplier-concentration investigation visible end-to-end (Dashboard →
-Newsroom → Article → ES/EN podcast), deployed on the CloudFront URL, all
-content pre-generated, individual-anonymization + guardrail caveat present in
-text and audio.
+Not a build driver; a way to *show* the finished product:
+
+1. **Dashboard** — animated counters; the punchline chart: **≈94.5% of
+   procurement is direct purchase**; signals-by-family; priority distribution.
+2. **Newsroom** — featured Edition banner; filter (e.g. F2 / high priority).
+3. **Cinematic Article** — Scroll mode: Cover (parallax + value count-up) →
+   El Caso → Sigue el Dinero → Las Conexiones (graph builds in) → Evidencia
+   (claims trace to exact OCDS fields + benchmark) → Cronología (honest "no
+   public data" markers) → Cierre. Emphasize *signals, not proof*;
+   `/methodology`.
+4. **Presentation mode** — full-screen chapters, arrow-advance.
+5. **Podcast mode** — "Escuchar": 60s native ES narration, approx chapter
+   auto-advance; toggle **EN** (UI + story + audio switch); close on the
+   Cierre caveat.

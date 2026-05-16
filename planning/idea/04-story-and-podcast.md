@@ -110,6 +110,12 @@ constrain the LLM — not by forbidding it from choosing. The cinematic shell is
 constant; scene choice + params make each article distinct; the article always
 renders.
 
+> The authoritative per-scene **param schemas**, the deterministic
+> **rule-family → scene shortlist**, and the **validator contract** are
+> defined in `05-frontend.md` → "Scene contract". Generation emits params
+> conforming to it (quantitative params carry a `ref` to a signal/evidence
+> id; bound params are server-supplied; presentational params are free).
+
 **Guardrail enforcement (from `00`):** post-generation check asserts (a) no
 banned phrase, (b) every `keyFinding` maps to a provided evidence item, and
 (c) **no personal name appears when an involved supplier's `entityType =

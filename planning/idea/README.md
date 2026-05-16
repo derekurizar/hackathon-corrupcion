@@ -6,9 +6,11 @@
 > presenting interactive bilingual articles with motion design and 60-second
 > podcast narration.
 
-This folder is the **polished, decomposed product spec** for the hackathon
-build. It supersedes (condenses) `../assets/open_contract_newsroom_idea.md`.
-It is the input for task planning in `../tasks/`.
+This folder is the **polished, decomposed product spec**. It supersedes
+(condenses) `../assets/open_contract_newsroom_idea.md`. The executable,
+dependency-ordered build plan lives in **`../tasks/`** — start at
+[`../tasks/00-sequence.md`](../tasks/00-sequence.md). We build a **good
+product** in phases; the demo is a non-driving reference only.
 
 > ⚠️ The system **does not prove corruption**. It surfaces *review signals* —
 > contracts and patterns worth investigating. Natural-person suppliers are
@@ -26,7 +28,7 @@ It is the input for task planning in `../tasks/`.
 | [`05-frontend.md`](./05-frontend.md) | **Cinematic investigative-noir UI**: design system, chapter spine, dynamic scene system, 3 nav modes, motion; restyled Dashboard/Newsroom/Methodology |
 | [`06-data-model.md`](./06-data-model.md) | MongoDB Atlas collections & indexes (authoritative; cluster is external) |
 | [`07-pipeline.md`](./07-pipeline.md) | Step Functions state machine, stage toggles, API surface |
-| [`08-scope-and-demo.md`](./08-scope-and-demo.md) | 48h sequencing, where polish goes, demo script, risks |
+| [`08-scope-and-demo.md`](./08-scope-and-demo.md) | Scope & build phases, first usable product increment, product risks, demo appendix (non-driving) |
 
 Source-of-truth references (do **not** re-derive):
 - `../assets/guatecompras_observed_types.ts` — shared OCDS input types (reuse verbatim)
@@ -77,8 +79,9 @@ Source-of-truth references (do **not** re-derive):
 | Build approach | **AWS-native first**; `@core` testable modules + local CLI runner (no LocalStack/SAM); local-per-stage then wrap |
 | Dashboard angle | National "**procurement radar**" + statistics |
 | Geo features | **Stretch only** — `region` captured in model; `RegionMap` (02 Sigue el Dinero) is a stretch scene |
-| Judging emphasis | **Civic impact + storytelling + design/UX wow** (technical breadth secondary); the **cinematic Article is THE core WOW** |
-| MVP floor | **Hero (cinematic Article: spine + default scenes + Scroll mode) + Dashboard + Podcast**, deployed |
+| Quality emphasis | **Civic impact + storytelling + design/UX wow** (rule breadth = depth, not gate); the **cinematic Article is the core** |
+| Build framing | **Product-quality, phased & dependency-ordered** (`../tasks/00-sequence.md`, Phases 0–4). **Demo is not an area / not the driver.** |
+| First usable increment | End of Phase 3: real data → Dashboard + Newsroom + cinematic Article (7 core scenes, Scroll) + bilingual podcast, deployed, evidence-traceable |
 | Product name | **Configurable** (single brand config / i18n). Candidates: *Expediente Público* / *Verdad sin Filtro* (ES) · *Open Contract Newsroom* (EN) |
 
 ## Brand name — configurable

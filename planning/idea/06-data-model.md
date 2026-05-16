@@ -129,6 +129,9 @@ Indexes: `{ caseKey:1 }`, `{ rule_id:1 }`, `{ family:1 }`, `{ ocid:1 }`.
   // per-chapter scene from the fixed Scene Catalog (05); LLM-picked from a
   // rule-filtered shortlist, params evidence-bound & validated; source flags
   // whether the deterministic default scene had to be used.
+  // `params` conform to the authoritative per-scene schema in
+  // `05-frontend.md` → "Scene contract" (bound / quantitative+ref /
+  // presentational); validated before persistence.
   "scenePlan": {
     "cover":         { "sceneId":"CoverHeadline","params":{}, "source":"llm" },
     "elCaso":        { "sceneId":"CaseStatement","params":{}, "source":"llm" },

@@ -8,14 +8,20 @@ bilingual articles with motion design and 60-second podcast narration.
 Full product spec lives in [`idea/`](./idea/) (start at
 [`idea/README.md`](./idea/README.md)).
 
-## Success criteria (hackathon)
+## Success criteria
 
-**MVP floor (guaranteed deliverable):** a polished bilingual
-**supplier-concentration** investigation end-to-end (Dashboard → Newsroom →
-Article → 60s ES/EN podcast) + Dashboard radar, deployed on the CloudFront
-URL, all content pre-generated.
+Build a **good product**, phased & dependency-ordered — not a demo. The
+executable plan is `tasks/00-sequence.md` (Phases 0–4); per-area task files
+are `tasks/01..12`. **Demo is not a build driver.**
 
-Beyond the floor:
+**First usable product increment (end of Phase 3):** from real ingested data,
+the SPA serves the Dashboard (radar), the Newsroom (all current
+investigations + current Edition), and the cinematic Article (7 core scenes,
+Scroll mode) fully bilingual with the 60s podcast; every claim
+evidence-traceable; individuals anonymized; caveat in text + audio; deployed
+(S3/CloudFront + API + external Atlas).
+
+Quality bar:
 - Deterministic detection (pluggable engine, default RuleConfig with LCE
   bands); LLM only narrates from structured evidence.
 - Every claim traceable to exact OCDS fields + a benchmark (Evidence panel)

@@ -128,6 +128,85 @@ additional **stretch**. Adding a scene later = one component + one shortlist
 entry (pluggable, mirrors the rule-engine philosophy). The cinematic shell
 stays constant; scene + params make each investigation feel distinct.
 
+## Scene contract (the shared cross-area contract)
+
+This is the single source of truth for the scene param schemas, the
+deterministic shortlist, and the validator. `04` (generation) emits params
+to this; `06` stores them; this file (frontend) renders them; the validator
+in the shared scene package enforces them.
+
+**Param kinds.** Every param is one of:
+- **bound** — server-supplied from the investigation/evidence (LLM cannot
+  set it): `buyer`, `supplier.displayName*`, `reviewPriority`, dates,
+  evidence rows. Passed through verbatim.
+- **quantitative** — a number/label the LLM provides **with a `ref`** to a
+  signal/evidence id; the validator requires the value to match that
+  referenced evidence/signal value (exact for ids/enums, equal for amounts).
+- **presentational** — free for the LLM: captions, prose, emphasis target
+  (must point at an existing bound/quantitative item), ordering.
+
+`refs` resolve against the case `signals[]`/`evidence[]` (see `06`),
+e.g. `ref:"ev:3"` (evidence index) or `ref:"sig:supplier_concentration_per_buyer"`.
+
+### Per-scene param schema — 7 core scenes
+
+| Scene | Params (kind) |
+|---|---|
+| `CoverHeadline` | `kicker`,`headline`,`dek` (pres) · `heroStat{ label(pres), value(quant+ref), unit(bound) }` · `buyer`(bound) · `supplierDisplay`(bound) · `reviewPriority`(bound) · `bgVariant`(pres enum) |
+| `CaseStatement` | `lead`(pres) · `pullStat{ value(quant+ref), label(pres) }` · `facts[3]{ text(pres), valueRef?(quant+ref) }` |
+| `MoneyFlowStreams` | `buyer`(bound) · `totalValue`(quant+ref) · `streams[]{ supplierId(bound), supplierDisplay(bound), amount(quant+ref), share(quant+ref) }` · `emphasisSupplierId`(pres, ∈streams) · `caption`(pres) |
+| `ConcentrationFan` | `buyer`(bound) · `topShare`(quant+ref) · `suppliers[]{ supplierId(bound), supplierDisplay(bound), value(quant+ref), share(quant+ref), flagged(bound) }` · `caption`(pres) |
+| `EvidenceLedger` | `items[]` **fully bound** to `investigation.evidence` `{ field, value, benchmark, comparison }` · `itemCaptions[]`(pres, parallel) · `order`(pres) |
+| `AwardTimeline` | `events[]{ date(bound), kind(bound: published\|tenderClose\|award\|contractSigned), label(pres), valueRef?(quant+ref) }` · `missingStages[]`(bound) · `highlightIdx`(pres) · `caption`(pres) |
+| `ClosingStatement` | `whatItMeans`(pres) · `caveat`(pres, **required & non-empty**) · `ctas`(bound fixed set: methodology, listen, share) |
+
+The 7 variants (`CaseSplit`, `PriceBars`, `ThresholdLadder`,
+`SplittingCluster`, `RepeatBidders`, `EvidenceCompare`, `GapSpotlight`)
+follow the same kind-tagged pattern; each variant's full schema is finalized
+in its build task (`planning/tasks/06-scene-contract.md`).
+
+### Deterministic shortlist (fired rules → allowed `sceneId`s per chapter)
+
+The LLM may only pick a `sceneId` from the chapter's shortlist; the **first
+entry is the guaranteed default**.
+
+| Chapter | Shortlist (default first) → condition to add |
+|---|---|
+| Cover | `CoverHeadline` (fixed) |
+| 01 El Caso | `CaseStatement` · `CaseSplit` (always allowed) |
+| 02 Sigue el Dinero | `MoneyFlowStreams` · +`PriceBars` if any of rules 13,14 fired · +`ThresholdLadder` if any of rules 15,18 fired · +`RegionMap` only if region data present **(stretch)** |
+| 03 Las Conexiones | `ConcentrationFan` · +`SplittingCluster` if rule 18 fired · +`RepeatBidders` if rule 10 fired |
+| 04 Evidencia | `EvidenceLedger` · +`EvidenceCompare` if any signal carries a `benchmark` |
+| 05 Cronología | `AwardTimeline` · +`GapSpotlight` if any of rules 20,21 fired |
+| Cierre | `ClosingStatement` (fixed) |
+
+(`family` of fired rules: F1=1–6, F2=7–12, F3=13–17, F4=18–23 — see `03`.)
+
+### Evidence-binding validator contract
+
+`validateScenePlan(chapter, planEntry, caseSignals, caseEvidence,
+investigation) → { sceneId, params, source }`:
+
+1. `planEntry.sceneId` must be in `shortlist(chapter, firedRules)` — else
+   fallback.
+2. Every **bound** param must equal the server value (overwrite with the
+   authoritative value; ignore LLM).
+3. Every **quantitative** param must carry a `ref` that resolves in
+   `caseSignals`/`caseEvidence`, and its value must match the referenced
+   value (exact for ids/enums/dates; numeric-equal for amounts/shares) —
+   else fallback.
+4. **presentational** params: shape/length only; an emphasis/`*Id` target
+   must reference an existing item in the same scene.
+5. `ClosingStatement.caveat` must be present & non-empty (mandatory caveat).
+6. Any failure → `{ sceneId: defaultScene(chapter),
+   params: deriveFromEvidence(chapter, signals, evidence, investigation),
+   source: "fallback" }`. Success → `source: "llm"`.
+
+`deriveFromEvidence` builds the default scene's params purely from
+signals/evidence/investigation (no LLM), guaranteeing every chapter renders.
+This contract lives in a shared scene package consumed by both the
+generation Lambda (`07`/`04`) and the SPA (`ScenePicker`).
+
 ## Three navigation modes
 
 A unified **bottom transport bar** + **left chapter rail** drive all modes.
