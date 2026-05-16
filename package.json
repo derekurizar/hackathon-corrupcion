@@ -1,0 +1,15 @@
+{
+  "name": "hackathon-corrupcion-root",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "engines": { "node": ">=20" },
+  "packageManager": "pnpm@10.13.1",
+  "description": "Root holds ONLY the shared ESLint flat-config toolchain so the single shared eslint.config.mjs can resolve its imports. NOT a pnpm workspace: there is no `workspaces` field and no pnpm-workspace.yaml; each folder still installs/builds in isolation via `pnpm --dir <folder>`.",
+  "devDependencies": {
+    "eslint": "^9.28.0",
+    "@eslint/js": "^9.28.0",
+    "typescript-eslint": "^8.33.1",
+    "eslint-config-prettier": "^10.1.5"
+  }
+}
