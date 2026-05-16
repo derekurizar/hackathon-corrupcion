@@ -40,6 +40,21 @@ copy-portable; `frontend/` consumes a **hand-synced copy** (no `file:` dep,
 drift risk; see `dev/06-scene-contract.dev.md`).
 Where this doc says `@core` it means the `backend` package.
 
+**Stage-fn naming convention (canonical, idea/07 verbatim).** The backend
+pipeline stage functions are exported (via `backend/src/index.ts`) with these
+exact names — kebab-case files, camelCase exports: `ingestMonth`,
+`buildBenchmarks`, `runDetection`, `rankAndCluster`, `generateStory`,
+`generateAudio`, `publish`. `generateAudio` is a **pure util only** (no
+backend Step-Functions handler); the deployed `Map:GenerateAudio` task is the
+infra glue `infrastructure/lambda/audio-glue.ts` (Area 02 Epic 2.5). The
+`data-integestion` CLI keeps short ergonomic **verbs**
+(`ingest|benchmarks|detect|generate|publish`) → fn mapping:
+`ingest→ingestMonth`, `benchmarks→buildBenchmarks`, `detect→runDetection`,
+`generate` chains `rankAndCluster→generateStory→generateAudio→publish`,
+`publish→publish` (so §4 Phase-gate `cli …` commands are unchanged). **API
+response types are frontend-owned zod (no sync); scene-contract is the only
+hand-synced copy.**
+
 ---
 
 ## 1. How to use this folder

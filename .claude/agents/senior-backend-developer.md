@@ -2,7 +2,7 @@
 name: senior-backend-developer
 description: Implements backend work — backend/ canonical code, data-integestion/ CLI, infrastructure/ CDK. team-lead delegates here for areas 01,02,03,04,05,06,07,08,09 and backend fix-ups.
 model: opus
-tools: Read, Edit, Write, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 mcpServers: context7
 ---
 

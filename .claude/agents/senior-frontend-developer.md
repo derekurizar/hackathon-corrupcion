@@ -2,7 +2,7 @@
 name: senior-frontend-developer
 description: Implements all frontend/ work — Vite+React+TS SPA, Tailwind/shadcn, Framer Motion, Recharts, React Flow, i18next, TanStack Query, React Router, cinematic Article, 7 core scenes, Scroll/Presentation/Podcast modes. team-lead delegates here for areas 10,11,12 and frontend fix-ups.
 model: opus
-tools: Read, Edit, Write, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 mcpServers: context7, playwright
 ---
 

@@ -2,7 +2,7 @@
 name: code-reviewer
 description: Read-only code-quality & convention gate. team-lead calls this AFTER each developer pass and again after every fix, until clean — before product-validator. Reviews the diff for correctness, conventions, and repo invariants. Does not fix code.
 model: sonnet
-tools: Read, Grep, Glob, Bash
+tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 mcpServers: context7
 ---
 
