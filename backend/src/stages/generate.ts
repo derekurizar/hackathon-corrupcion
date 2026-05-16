@@ -19,6 +19,11 @@ import type { Entity } from '../schema/index.js';
 
 const log = (m: string): void => console.error(`[generate] ${m}`);
 
+/** Truncate a free-text value for grep-friendly key=value logging. */
+function trunc(s: string, max = 40): string {
+  return s.length > max ? `${s.slice(0, max)}...` : s;
+}
+
 export interface GenerateArgs {
   scope?: string;
   dryRun?: boolean;
@@ -53,26 +58,45 @@ export async function generate(
     },
   });
 
+  log(
+    `starting scope=${args.scope ?? '(resolve)'} ` +
+      `RUN_STORY=${cfg.RUN_STORY} RUN_AUDIO=${cfg.RUN_AUDIO} ` +
+      `RUN_PUBLISH=${cfg.RUN_PUBLISH}`,
+  );
+
   try {
     const ranked = await rankAndCluster({
       ...(args.scope !== undefined ? { scope: args.scope } : {}),
     });
     const { scope, bundles } = ranked;
-    log(`ranked cases=${bundles.length} scope=${scope}`);
+    log(`phase=rank complete cases=${bundles.length} scope=${scope}`);
 
     if (cfg.RUN_STORY) {
       await markStage(runId, 'story', 'running');
+      log(`phase=story starting cases=${bundles.length}`);
+      let n = 0;
+      for (const b of bundles) {
+        n += 1;
+        log(
+          `story ${n}/${bundles.length} caseKey=${b.caseKey} ` +
+            `buyer="${trunc(b.buyer.name)}" family=${b.family}`,
+        );
+      }
       const sr = await generateStory({ scope, bundles });
-      log(`story stories=${sr.stories} fallbacks=${sr.fallbacks}`);
+      log(
+        `phase=story complete stories=${sr.stories} ` +
+          `fallbacks=${sr.fallbacks}`,
+      );
       await markStage(runId, 'story', 'done');
     } else {
-      log('story skipped via RUN_STORY=false');
+      log('phase=story SKIPPED (RUN_STORY=false)');
       await markStage(runId, 'story', 'skipped');
     }
 
     const audioItems: AudioItem[] = [];
     if (cfg.RUN_AUDIO && bundles.length > 0) {
       await markStage(runId, 'audio', 'running');
+      log(`phase=audio starting cases=${bundles.length}`);
       const voiceEs = cfg.ELEVENLABS_VOICE_ES ?? '';
       const voiceEn = cfg.ELEVENLABS_VOICE_EN ?? '';
       if (voiceEs === '' || voiceEn === '') {
@@ -114,11 +138,11 @@ export async function generate(
           });
           audioItems.push(...out.items);
         }
-        log(`audio items=${audioItems.length}`);
+        log(`phase=audio complete items=${audioItems.length}`);
         await markStage(runId, 'audio', 'done');
       }
     } else if (!cfg.RUN_AUDIO) {
-      log('audio skipped via RUN_AUDIO=false');
+      log('phase=audio SKIPPED (RUN_AUDIO=false)');
       await markStage(runId, 'audio', 'skipped');
     }
 
@@ -126,15 +150,17 @@ export async function generate(
     let skipped = 0;
     if (cfg.RUN_PUBLISH) {
       await markStage(runId, 'publish', 'running');
+      log(`phase=publish starting cases=${bundles.length}`);
       const pr = await publish({ runId, scope, bundles });
       investigations = pr.investigations;
       skipped = pr.skipped;
       log(
-        `publish investigations=${investigations} skipped=${skipped} edition=${pr.editionId}`,
+        `phase=publish complete written=${investigations} ` +
+          `skipped=${skipped} edition=${pr.editionId}`,
       );
       await markStage(runId, 'publish', 'done');
     } else {
-      log('publish skipped via RUN_PUBLISH=false');
+      log('phase=publish SKIPPED (RUN_PUBLISH=false)');
       await markStage(runId, 'publish', 'skipped');
     }
 

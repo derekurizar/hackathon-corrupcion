@@ -30,6 +30,14 @@ export interface ClaudeClient {
   }): Promise<ClaudeStoryRaw>;
 }
 
+const log = (m: string): void => console.error(`[claude] ${m}`);
+
+/** Best-effort caseKey for logging only (userBlock starts `CASE <key> — ...`). */
+function caseKeyForLog(userBlock: string): string {
+  const m = /CASE\s+(\S+)/.exec(userBlock);
+  return m?.[1] ?? 'unknown';
+}
+
 const RETRY_DELAYS_MS = [1000, 2000, 4000] as const;
 
 function sleep(ms: number): Promise<void> {
@@ -92,9 +100,14 @@ export function createClaudeClient(): ClaudeClient {
         ? `STRICT MODE: Previous response failed guardrails. ${opts.userBlock}`
         : opts.userBlock;
 
+      const caseKey = caseKeyForLog(opts.userBlock);
       let lastErr: unknown;
       for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
         try {
+          log(
+            `generating case=${caseKey} model=${model} ` +
+              `isLead=${opts.isLead} attempt=${attempt + 1}`,
+          );
           const response = await anthropic.messages.create({
             model,
             max_tokens: 4096,
@@ -110,19 +123,38 @@ export function createClaudeClient(): ClaudeClient {
 
           const block = response.content[0];
           if (block === undefined || block.type !== 'text') {
+            log(
+              `parse_error case=${caseKey} attempt=${attempt + 1} ` +
+                `reason="no text block" preview=""`,
+            );
             throw new ClaudeParseError('Claude response had no text block');
           }
           let parsed: unknown;
           try {
             parsed = JSON.parse(block.text);
           } catch {
+            log(
+              `parse_error case=${caseKey} attempt=${attempt + 1} ` +
+                `reason="invalid JSON" preview="${block.text.slice(0, 120)}"`,
+            );
             throw new ClaudeParseError('Claude response was not valid JSON');
           }
           if (!looksLikeStory(parsed)) {
+            log(
+              `parse_error case=${caseKey} attempt=${attempt + 1} ` +
+                `reason="missing es/en/podcast/scenePlan" ` +
+                `preview="${block.text.slice(0, 120)}"`,
+            );
             throw new ClaudeParseError(
               'Claude response missing es/en/podcast/scenePlan',
             );
           }
+          log(
+            `done case=${caseKey} attempt=${attempt + 1} ` +
+              `input_tokens=${response.usage.input_tokens} ` +
+              `output_tokens=${response.usage.output_tokens} ` +
+              `cached_tokens=${response.usage.cache_read_input_tokens ?? 0}`,
+          );
           return parsed;
         } catch (err) {
           if (err instanceof ClaudeParseError) throw err;
@@ -132,12 +164,18 @@ export function createClaudeClient(): ClaudeClient {
             attempt < RETRY_DELAYS_MS.length
           ) {
             const base = RETRY_DELAYS_MS[attempt]!;
-            await sleep(base + Math.random() * 500);
+            const delay = base + Math.random() * 500;
+            log(
+              `rate_limited case=${caseKey} attempt=${attempt + 1} ` +
+                `retrying in ${Math.round(delay)}ms`,
+            );
+            await sleep(delay);
             continue;
           }
           throw err;
         }
       }
+      log(`failed case=${caseKey} all_attempts_exhausted`);
       throw lastErr instanceof Error
         ? lastErr
         : new Error(String(lastErr));

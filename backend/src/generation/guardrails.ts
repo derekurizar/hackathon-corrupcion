@@ -2,6 +2,16 @@ import type { ClaudeClient, ClaudeStoryRaw } from './claude.js';
 import type { CaseBundle } from './rank.js';
 import { buildSystemPrefix, buildUserBlock, BANNED_PHRASES } from './prompt.js';
 
+const log = (m: string): void => console.error(`[guardrails] ${m}`);
+
+/** Map a structured `reason` string to a stable, grep-friendly check label. */
+function checkLabel(reason: string): string {
+  if (reason.startsWith('banned phrase')) return 'banned_phrase';
+  if (reason.startsWith('unbacked keyFinding')) return 'keyfinding_untraced';
+  if (reason.startsWith('raw individual name')) return 'name_leak';
+  return 'unknown';
+}
+
 export type GuardrailCheckResult =
   | { ok: true }
   | { ok: false; reason: string };
@@ -118,6 +128,8 @@ export async function generateStoryGuarded(
       entityTypeHint,
     );
 
+    let lastFailReason = 'no story produced';
+
     let story1: ClaudeStoryRaw | null = null;
     try {
       story1 = await client.generateStory({
@@ -129,6 +141,7 @@ export async function generateStoryGuarded(
       story1 = null;
     }
     if (story1 !== null) {
+      log(`checking case=${bundle.caseKey} attempt=1`);
       const check1 = checkGuardrails(
         story1,
         bundle,
@@ -136,10 +149,19 @@ export async function generateStoryGuarded(
         entityTypeHint,
         BANNED_PHRASES,
       );
-      if (check1.ok) return { story: story1, usedFallback: false };
+      if (check1.ok) {
+        log(`PASS case=${bundle.caseKey} attempt=1`);
+        return { story: story1, usedFallback: false };
+      }
+      lastFailReason = check1.reason;
+      log(
+        `FAIL case=${bundle.caseKey} attempt=1 ` +
+          `check=${checkLabel(check1.reason)} detail="${check1.reason}"`,
+      );
     }
 
     // exactly one stricter retry
+    log(`retrying case=${bundle.caseKey} with stricter prompt`);
     let story2: ClaudeStoryRaw | null = null;
     try {
       story2 = await client.generateStory({
@@ -152,6 +174,7 @@ export async function generateStoryGuarded(
       story2 = null;
     }
     if (story2 !== null) {
+      log(`checking case=${bundle.caseKey} attempt=2`);
       const check2 = checkGuardrails(
         story2,
         bundle,
@@ -159,12 +182,28 @@ export async function generateStoryGuarded(
         entityTypeHint,
         BANNED_PHRASES,
       );
-      if (check2.ok) return { story: story2, usedFallback: false };
+      if (check2.ok) {
+        log(`PASS case=${bundle.caseKey} attempt=2`);
+        return { story: story2, usedFallback: false };
+      }
+      lastFailReason = check2.reason;
+      log(
+        `FAIL case=${bundle.caseKey} attempt=2 ` +
+          `check=${checkLabel(check2.reason)} detail="${check2.reason}"`,
+      );
     }
 
+    log(
+      `FALLBACK case=${bundle.caseKey} ` +
+        `reason="failed after 2 attempts (check=${checkLabel(lastFailReason)})"`,
+    );
     return { story: null, usedFallback: true };
-  } catch {
+  } catch (err) {
     // Absolute backstop — guardrails NEVER throw.
+    log(
+      `FALLBACK case=${bundle.caseKey} ` +
+        `reason="unhandled error: ${err instanceof Error ? err.message : String(err)}"`,
+    );
     return { story: null, usedFallback: true };
   }
 }

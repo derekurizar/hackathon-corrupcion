@@ -1,6 +1,8 @@
 import { loadConfig } from '../config/env.js';
 import type { CuePoint } from '../schema/index.js';
 
+const log = (m: string): void => console.error(`[audio] ${m}`);
+
 /**
  * Versioned S3 key for a podcast track (idea/04 §"Podcast"). Shared by every
  * caller (the data-integestion dev-loop adapter and the Area 02 infra glue) so
@@ -32,7 +34,13 @@ async function synthesize(
   apiKey: string,
   voiceId: string,
   script: string,
+  /** Logging-only context (private helper — no public contract change). */
+  ctx: { caseKey: string; version: number; lang: 'es' | 'en' },
 ): Promise<Buffer> {
+  log(
+    `synthesizing case=${ctx.caseKey} version=${ctx.version} ` +
+      `lang=${ctx.lang} voiceId=${voiceId} scriptLen=${script.length}chars`,
+  );
   let lastErr: unknown;
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
     try {
@@ -52,13 +60,28 @@ async function synthesize(
         },
       );
       if (res.status === 429 && attempt < RETRY_DELAYS_MS.length) {
-        await sleep(RETRY_DELAYS_MS[attempt]!);
+        const delay = RETRY_DELAYS_MS[attempt]!;
+        log(
+          `rate_limited case=${ctx.caseKey} lang=${ctx.lang} ` +
+            `attempt=${attempt + 1} retrying in ${delay}ms`,
+        );
+        await sleep(delay);
         continue;
       }
       if (!res.ok) {
-        throw new Error(`ElevenLabs ${res.status}: ${await res.text()}`);
+        const body = await res.text();
+        log(
+          `ERROR case=${ctx.caseKey} lang=${ctx.lang} ` +
+            `status=${res.status} body="${body.slice(0, 120)}"`,
+        );
+        throw new Error(`ElevenLabs ${res.status}: ${body}`);
       }
-      return Buffer.from(await res.arrayBuffer());
+      const buf = Buffer.from(await res.arrayBuffer());
+      log(
+        `done case=${ctx.caseKey} lang=${ctx.lang} bytes=${buf.length} ` +
+          `key=${audioKey(ctx.caseKey, ctx.version, ctx.lang)}`,
+      );
+      return buf;
     } catch (err) {
       lastErr = err;
       if (attempt < RETRY_DELAYS_MS.length) {
@@ -100,11 +123,13 @@ export async function generateAudio(args: {
     apiKey,
     args.voices.es,
     args.podcast.es.script,
+    { caseKey: args.caseKey, version: args.version, lang: 'es' },
   );
   const enBytes = await synthesize(
     apiKey,
     args.voices.en,
     args.podcast.en.script,
+    { caseKey: args.caseKey, version: args.version, lang: 'en' },
   );
 
   const items: AudioItem[] = [

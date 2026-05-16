@@ -26,6 +26,13 @@ import { buildEdition, recomputeDashboardStats } from './editions.js';
 import { FIXED_CAVEAT_ES, FIXED_CAVEAT_EN } from './prompt.js';
 import type { CaseBundle } from './rank.js';
 
+const log = (m: string): void => console.error(`[publish] ${m}`);
+
+/** Truncate a free-text value for grep-friendly key=value logging. */
+function trunc(s: string, max = 40): string {
+  return s.length > max ? `${s.slice(0, max)}...` : s;
+}
+
 export interface PublishArgs {
   runId: string;
   scope: string;
@@ -147,12 +154,24 @@ export async function publishInvestigations(
 ): Promise<PublishResult> {
   let investigations = 0;
   let skipped = 0;
+  let fallbacks = 0;
   let client: ReturnType<typeof createClaudeClient> | null = null;
+  const total = args.bundles.length;
+  let idx = 0;
 
   for (const bundle of args.bundles) {
+    idx += 1;
+    log(
+      `processing case=${idx}/${total} caseKey=${bundle.caseKey} ` +
+        `buyer="${trunc(bundle.buyer.name)}" family=${bundle.family}`,
+    );
     const hash = evidenceHash(bundle.signals);
     const existing = await getByCaseKey(bundle.caseKey);
     if (existing?.evidenceHash === hash) {
+      log(
+        `SKIP case=${bundle.caseKey} evidenceHash unchanged ` +
+          `(hash=${hash.slice(0, 8)}...)`,
+      );
       skipped += 1;
       continue;
     }
@@ -214,12 +233,15 @@ export async function publishInvestigations(
       evidence: sceneEvidence,
     };
 
+    if (usedFallback) fallbacks += 1;
+
     const resolvedScenePlan = resolveScenePlan(
       bundle.firedRuleIds,
       llmScenePlan,
       sceneSignals,
       sceneEvidence,
       sceneInvestigation,
+      bundle.caseKey,
     );
 
     const version = existing ? existing.version + 1 : 1;
@@ -245,10 +267,30 @@ export async function publishInvestigations(
       updatedAt: new Date().toISOString(),
     };
 
-    const parsed = InvestigationSchema.parse(doc);
+    let parsed: Investigation;
+    try {
+      parsed = InvestigationSchema.parse(doc);
+    } catch (err) {
+      log(
+        `ERROR case=${bundle.caseKey} schema validation failed: ` +
+          `${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw err;
+    }
     await upsertInvestigationGuarded(parsed, existing?.evidenceHash);
+    log(
+      `WRITE case=${bundle.caseKey} version=${version} ` +
+        `(${existing ? 'updated' : 'new'}) ` +
+        `supplier="${trunc(anon.displayNameEs)}" ` +
+        `isIndividual=${anon.isIndividual} usedFallback=${usedFallback}`,
+    );
     investigations += 1;
   }
+
+  log(
+    `summary written=${investigations} skipped=${skipped} ` +
+      `fallbacks=${fallbacks}`,
+  );
 
   const edition = buildEdition(
     args.runId,
@@ -256,7 +298,17 @@ export async function publishInvestigations(
     args.bundles,
   );
   await insertEdition(edition);
-  await upsertDashboardStats(await recomputeDashboardStats());
+  log(
+    `edition editionId=${edition._id} leadCase=${edition.leadCaseKey} ` +
+      `highlights=[${edition.highlightCaseKeys.join(',')}]`,
+  );
+  const stats = await recomputeDashboardStats();
+  await upsertDashboardStats(stats);
+  log(
+    `dashboardStats updated investigations=${stats.counters.investigations} ` +
+      `high=${stats.priorityDist.high} medium=${stats.priorityDist.medium} ` +
+      `low=${stats.priorityDist.low}`,
+  );
 
   return { investigations, skipped, editionId: edition._id };
 }

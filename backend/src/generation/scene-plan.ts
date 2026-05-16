@@ -7,6 +7,8 @@ import type {
 } from '../scene-contract/types.js';
 import type { ScenePlanEntry } from '../schema/index.js';
 
+const log = (m: string): void => console.error(`[scene] ${m}`);
+
 /**
  * The fixed 7-chapter spine (idea/05). Every Investigation MUST carry an entry
  * for all 7 — the frontend (Area 11) renders the full spine.
@@ -39,6 +41,9 @@ export function resolveScenePlan(
   sceneSignals: SceneSignal[],
   sceneEvidence: SceneEvidenceItem[],
   sceneInvestigation: SceneInvestigation,
+  /** Logging-only context; defaults to 'unknown' so existing callers/tests
+   * stay source-compatible (additive, optional — no contract break). */
+  caseKey = 'unknown',
 ): Record<string, ScenePlanEntry> {
   const out: Record<string, ScenePlanEntry> = {};
   for (const chapter of CHAPTERS) {
@@ -48,12 +53,25 @@ export function resolveScenePlan(
       params: llm?.params ?? {},
       source: 'llm',
     };
-    out[chapter] = validateScenePlan(
+    const validated = validateScenePlan(
       chapter,
       entry,
       sceneSignals,
       sceneEvidence,
       sceneInvestigation,
+    );
+    out[chapter] = validated;
+    const llmSceneId = llm?.sceneId ?? '';
+    const reason =
+      validated.source === 'fallback'
+        ? llmSceneId === ''
+          ? ' (reason: no llm sceneId)'
+          : ' (reason: validator rejected llm sceneId/params)'
+        : '';
+    log(
+      `case=${caseKey} chapter=${chapter} ` +
+        `llm_sceneId=${llmSceneId === '' ? 'NONE' : llmSceneId} ` +
+        `validated=${validated.sceneId} source=${validated.source}${reason}`,
     );
   }
   return out;

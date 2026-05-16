@@ -4,6 +4,13 @@ import { getSignalsByScope } from '../repositories/signals.js';
 import { getAllEntities } from '../repositories/entities.js';
 import { loadConfig } from '../config/env.js';
 
+const log = (m: string): void => console.error(`[rank] ${m}`);
+
+/** Truncate a free-text value for grep-friendly key=value logging. */
+function trunc(s: string, max = 40): string {
+  return s.length > max ? `${s.slice(0, max)}...` : s;
+}
+
 /**
  * One ranked, narration-ready case = all signals sharing a `caseKey`
  * (one buyer × signal family × scope — idea/04 §"Case clustering").
@@ -105,6 +112,7 @@ export async function rankAndClusterCases(args: {
 }): Promise<CaseBundle[]> {
   const cfg = loadConfig();
   const signals = await getSignalsByScope(args.scope);
+  log(`scope=${args.scope} total_signals=${signals.length}`);
   if (signals.length === 0) return [];
 
   const entities = await getAllEntities();
@@ -116,6 +124,7 @@ export async function rankAndClusterCases(args: {
     if (arr) arr.push(sig);
     else groups.set(sig.caseKey, [sig]);
   }
+  log(`unique_cases=${groups.size}`);
 
   type Ranked = { bundle: CaseBundle; sortKey: [number, number, number, string, string] };
   const ranked: Ranked[] = [];
@@ -172,9 +181,29 @@ export async function rankAndClusterCases(args: {
     return a.sortKey[4] < b.sortKey[4] ? -1 : a.sortKey[4] > b.sortKey[4] ? 1 : 0;
   });
 
+  const priorityLabel = (rankNum: number): string =>
+    (Object.keys(PRIORITY_RANK) as Array<keyof typeof PRIORITY_RANK>).find(
+      (k) => PRIORITY_RANK[k] === rankNum,
+    ) ?? String(rankNum);
+  const logCap = Math.max(30, cfg.MAX_INVESTIGATIONS_PER_RUN * 2);
+  for (let i = 0; i < ranked.length && i < logCap; i += 1) {
+    const r = ranked[i]!;
+    const b = r.bundle;
+    log(
+      `case rank=${i + 1} caseKey=${b.caseKey} buyer="${trunc(b.buyer.name)}" ` +
+        `family=${b.family} priority=${priorityLabel(r.sortKey[0])} ` +
+        `aggConf=${(-r.sortKey[1]).toFixed(2)} totalValue=${-r.sortKey[2]} ` +
+        `signals=${b.signals.length}`,
+    );
+  }
+
   const bundles = ranked
     .slice(0, cfg.MAX_INVESTIGATIONS_PER_RUN)
     .map((r) => r.bundle);
   if (bundles.length > 0) bundles[0]!.isLead = true;
+  log(
+    `selected top=${bundles.length} of ${groups.size} cases ` +
+      `(MAX_INVESTIGATIONS_PER_RUN=${cfg.MAX_INVESTIGATIONS_PER_RUN})`,
+  );
   return bundles;
 }
