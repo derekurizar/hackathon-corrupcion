@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import './direct_award_overreliance.js';
 import { ruleById, makeCtx } from '../__fixtures__/ctx.js';
-import {
-  makeRelease,
-  makeBenchmark,
-  makeEntityIndex,
-} from '../__fixtures__/release.js';
+import { makeRelease, makeBenchmark, makeEntityIndex } from '../__fixtures__/release.js';
 // makeBenchmark used for both module-level bench and the full-share variant.
 
 const rule = ruleById('direct_award_overreliance');
@@ -37,9 +33,7 @@ describe('direct_award_overreliance (rule 3, F1)', () => {
         },
       },
     });
-    const out = rule.run(
-      makeCtx({ release: makeRelease(), benchmarks: bench, entities }),
-    );
+    const out = rule.run(makeCtx({ release: makeRelease(), benchmarks: bench, entities }));
     expect(out).toHaveLength(1);
     expect(out[0]!.severity).toBe('medium'); // share 0.99 < 1.0 → medium
   });
@@ -69,9 +63,7 @@ describe('direct_award_overreliance (rule 3, F1)', () => {
       },
     });
     expect(
-      rule.run(
-        makeCtx({ release: makeRelease(), benchmarks: fullBench, entities }),
-      )[0]!.severity,
+      rule.run(makeCtx({ release: makeRelease(), benchmarks: fullBench, entities }))[0]!.severity,
     ).toBe('high');
   });
 
@@ -89,14 +81,12 @@ describe('direct_award_overreliance (rule 3, F1)', () => {
         },
       },
     });
-    expect(
-      rule.run(makeCtx({ release: makeRelease(), benchmarks: bench, entities })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease(), benchmarks: bench, entities }))).toHaveLength(
+      0,
+    );
   });
 
   it('does NOT fire when buyer has no method mix', () => {
-    expect(
-      rule.run(makeCtx({ release: makeRelease() })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease() }))).toHaveLength(0);
   });
 });

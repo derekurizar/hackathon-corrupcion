@@ -1,10 +1,11 @@
 import type { Signal } from '../schema/index.js';
+import { moduleLogger } from '../obs/logger.js';
 import { reviewPriority } from '../detection/review-priority.js';
 import { getSignalsByScope } from '../repositories/signals.js';
 import { getAllEntities } from '../repositories/entities.js';
 import { loadConfig } from '../config/env.js';
 
-const log = (m: string): void => console.error(`[rank] ${m}`);
+const log = moduleLogger('rank');
 
 /** Truncate a free-text value for grep-friendly key=value logging. */
 function trunc(s: string, max = 40): string {
@@ -45,7 +46,7 @@ const PRIORITY_RANK: Record<'high' | 'medium' | 'low', number> = {
  * (case-insensitive). This is the case's headline "value flagged". Falls back
  * to 0 when no such numeric evidence item exists.
  */
-function caseTotalValue(signals: Signal[]): number {
+export function caseTotalValue(signals: Signal[]): number {
   let max = 0;
   let found = false;
   for (const sig of signals) {
@@ -74,11 +75,7 @@ function caseRecency(signals: Signal[]): string {
   let max = '';
   for (const sig of signals) {
     for (const e of sig.evidence) {
-      if (
-        e.field.toLowerCase().includes('date') &&
-        typeof e.value === 'string' &&
-        e.value > max
-      ) {
+      if (e.field.toLowerCase().includes('date') && typeof e.value === 'string' && e.value > max) {
         max = e.value;
       }
     }
@@ -107,9 +104,7 @@ function flattenEvidence(signals: Signal[]): Signal['evidence'] {
  * guard, not a product cap). The first surviving bundle is the run's lead.
  * Pure aside from the two repo reads; same input ⇒ identical ordered output.
  */
-export async function rankAndClusterCases(args: {
-  scope: string;
-}): Promise<CaseBundle[]> {
+export async function rankAndClusterCases(args: { scope: string }): Promise<CaseBundle[]> {
   const cfg = loadConfig();
   const signals = await getSignalsByScope(args.scope);
   log(`scope=${args.scope} total_signals=${signals.length}`);
@@ -139,9 +134,7 @@ export async function rankAndClusterCases(args: {
     const buyerName = entityMap.get(buyerId)?.name ?? buyerId;
     const family = first.family;
     const firedRuleIds = [...new Set(group.map((s) => s.rule_id))];
-    const supplierIds = [
-      ...new Set(group.flatMap((s) => s.secondaryEntityIds)),
-    ];
+    const supplierIds = [...new Set(group.flatMap((s) => s.secondaryEntityIds))];
 
     const bundle: CaseBundle = {
       caseKey,
@@ -175,8 +168,7 @@ export async function rankAndClusterCases(args: {
     if (a.sortKey[1] !== b.sortKey[1]) return a.sortKey[1] - b.sortKey[1];
     if (a.sortKey[2] !== b.sortKey[2]) return a.sortKey[2] - b.sortKey[2];
     // recency DESC (later date first)
-    if (a.sortKey[3] !== b.sortKey[3])
-      return a.sortKey[3] < b.sortKey[3] ? 1 : -1;
+    if (a.sortKey[3] !== b.sortKey[3]) return a.sortKey[3] < b.sortKey[3] ? 1 : -1;
     // caseKey ASC (stable tiebreak)
     return a.sortKey[4] < b.sortKey[4] ? -1 : a.sortKey[4] > b.sortKey[4] ? 1 : 0;
   });
@@ -197,9 +189,7 @@ export async function rankAndClusterCases(args: {
     );
   }
 
-  const bundles = ranked
-    .slice(0, cfg.MAX_INVESTIGATIONS_PER_RUN)
-    .map((r) => r.bundle);
+  const bundles = ranked.slice(0, cfg.MAX_INVESTIGATIONS_PER_RUN).map((r) => r.bundle);
   if (bundles.length > 0) bundles[0]!.isLead = true;
   log(
     `selected top=${bundles.length} of ${groups.size} cases ` +

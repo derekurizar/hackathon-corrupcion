@@ -1,35 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { extractEntities } from './entities.js';
 import { deriveEntityType } from '../identity/index.js';
-import {
-  compiledReleaseFixture,
-  noPartiesRecordFixture,
-} from './__fixtures__/compiled-release.js';
+import { compiledReleaseFixture, noPartiesRecordFixture } from './__fixtures__/compiled-release.js';
 import type { GuatecomprasRecord } from '../ocds/index.js';
 
 describe('deriveEntityType — data-expert fix for bare "INDIVIDUAL"', () => {
   it('classifies SOCIEDAD ANÓNIMA as company', () => {
-    expect(
-      deriveEntityType({ legalEntityTypeDetail: 'SOCIEDAD ANÓNIMA', name: 'X' }),
-    ).toBe('company');
+    expect(deriveEntityType({ legalEntityTypeDetail: 'SOCIEDAD ANÓNIMA', name: 'X' })).toBe(
+      'company',
+    );
   });
 
   it('classifies the bare word "INDIVIDUAL" as individual (regression)', () => {
     // Before the fix this fell through to "unknown" — see identity/index.ts.
-    expect(deriveEntityType({ legalEntityTypeDetail: 'INDIVIDUAL' })).toBe(
-      'individual',
-    );
-    expect(deriveEntityType({ legalEntityTypeDetail: 'individual' })).toBe(
-      'individual',
-    );
+    expect(deriveEntityType({ legalEntityTypeDetail: 'INDIVIDUAL' })).toBe('individual');
+    expect(deriveEntityType({ legalEntityTypeDetail: 'individual' })).toBe('individual');
   });
 
   it('classifies individual via the Guatemalan single-token name pattern', () => {
     // Area 03 pattern: /^[A-ZÁÉÍÓÚÑÜ]+,[A-ZÁÉÍÓÚÑÜ]+,,/ — surnames are single
     // tokens (no spaces). Confirms the heuristic path still works post-fix.
-    expect(deriveEntityType({ name: 'CUXULIC,CHUJ,,ANDRES,' })).toBe(
-      'individual',
-    );
+    expect(deriveEntityType({ name: 'CUXULIC,CHUJ,,ANDRES,' })).toBe('individual');
   });
 
   it('returns unknown for a spaced-surname natural name with no detail', () => {
@@ -37,9 +28,7 @@ describe('deriveEntityType — data-expert fix for bare "INDIVIDUAL"', () => {
     // Area 03 name regex → unknown (treated as individual downstream). The
     // bare-"INDIVIDUAL" legalEntityTypeDetail path is the reliable signal and
     // is covered above. Area 03 regex is out of Area 04 scope to change.
-    expect(deriveEntityType({ name: 'DE LEON,MALDONADO,,CESAR,AUGUSTO' })).toBe(
-      'unknown',
-    );
+    expect(deriveEntityType({ name: 'DE LEON,MALDONADO,,CESAR,AUGUSTO' })).toBe('unknown');
   });
 
   it('returns unknown when nothing matches', () => {

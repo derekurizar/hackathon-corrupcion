@@ -15,11 +15,7 @@ describe('ingest-month Lambda handler', () => {
 
   it('routes the event {year,month} to ingestMonth and returns the count', async () => {
     ingestMonthMock.mockResolvedValue({ recordsIngested: 17426, runId: 'run-x' });
-    const result = await handler(
-      { year: 2026, month: 4 },
-      {} as never,
-      () => {},
-    );
+    const result = await handler({ year: 2026, month: 4 }, {} as never, () => {});
     expect(ingestMonthMock).toHaveBeenCalledWith({ year: 2026, month: 4 });
     // handler narrows the result to just recordsIngested
     expect(result).toEqual({ recordsIngested: 17426 });
@@ -27,8 +23,8 @@ describe('ingest-month Lambda handler', () => {
 
   it('propagates ingestMonth failures (no swallowing)', async () => {
     ingestMonthMock.mockRejectedValue(new Error('stream blew up'));
-    await expect(
-      handler({ year: 2026, month: 4 }, {} as never, () => {}),
-    ).rejects.toThrow('stream blew up');
+    await expect(handler({ year: 2026, month: 4 }, {} as never, () => {})).rejects.toThrow(
+      'stream blew up',
+    );
   });
 });

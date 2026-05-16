@@ -83,9 +83,7 @@ export async function upsertInvestigation(doc: Investigation): Promise<void> {
 }
 
 /** Area 07 dedup lookup — alias of `getInvestigationByCaseKey`. */
-export async function getByCaseKey(
-  caseKey: string,
-): Promise<WithId<Investigation> | null> {
+export async function getByCaseKey(caseKey: string): Promise<WithId<Investigation> | null> {
   return getInvestigationByCaseKey(caseKey);
 }
 

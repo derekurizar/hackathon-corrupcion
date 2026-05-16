@@ -22,9 +22,7 @@ export function shouldReplace(
  * by a later op with an earlier date. Order of returned candidates is not
  * significant (filtered against stored dates downstream).
  */
-export function collapseByOcidKeepLatest(
-  docs: CuratedRelease[],
-): CuratedRelease[] {
+export function collapseByOcidKeepLatest(docs: CuratedRelease[]): CuratedRelease[] {
   const byOcid = new Map<string, CuratedRelease>();
   for (const d of docs) {
     const prev = byOcid.get(d.ocid);
@@ -48,9 +46,7 @@ export async function upsertCuratedRelease(doc: CuratedRelease): Promise<void> {
  * round-trip instead of N. Unordered so an unrelated op failure never aborts
  * the batch.
  */
-export async function bulkUpsertCuratedReleases(
-  docs: CuratedRelease[],
-): Promise<void> {
+export async function bulkUpsertCuratedReleases(docs: CuratedRelease[]): Promise<void> {
   if (docs.length === 0) return;
   const col = await getCollection('curatedReleases');
 

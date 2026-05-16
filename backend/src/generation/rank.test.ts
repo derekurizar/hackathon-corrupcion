@@ -60,11 +60,7 @@ describe('rankAndClusterCases', () => {
     ];
     allEntities = [];
     const bundles = await rankAndClusterCases({ scope: 'scope:x' });
-    expect(bundles.map((b) => b.caseKey)).toEqual([
-      'CASE_HIGH',
-      'CASE_MED',
-      'CASE_LOW',
-    ]);
+    expect(bundles.map((b) => b.caseKey)).toEqual(['CASE_HIGH', 'CASE_MED', 'CASE_LOW']);
     expect(bundles[0]!.isLead).toBe(true);
     expect(bundles[1]!.isLead).toBe(false);
   });

@@ -23,19 +23,14 @@ registerRule({
     const entry = benchmarks.repeatWinnerIndex[buyerId];
     if (!entry) return [];
 
-    const thisSet = setKey(
-      release.bids.map((b) => b.tendererId).filter((x) => x !== ''),
-    );
+    const thisSet = setKey(release.bids.map((b) => b.tendererId).filter((x) => x !== ''));
     if (thisSet === '') return [];
 
     for (const pattern of entry.tendererSets) {
       if (pattern.tendererIds.length < config.RULE_10_MIN_SET_SIZE) continue;
       if (setKey(pattern.tendererIds) !== thisSet) continue;
       if (pattern.occurrences < config.RULE_10_MIN_RECURRENCE) continue;
-      const winRate =
-        pattern.occurrences > 0
-          ? pattern.winnerWinCount / pattern.occurrences
-          : 0;
+      const winRate = pattern.occurrences > 0 ? pattern.winnerWinCount / pattern.occurrences : 0;
       if (winRate < config.RULE_10_MIN_WIN_RATE) continue;
 
       return [
@@ -66,9 +61,7 @@ registerRule({
             },
           ],
           primaryEntityId: buyerId,
-          secondaryEntityIds: pattern.winnerIds.map((w) =>
-            ctx.entities.canonicalOf(w),
-          ),
+          secondaryEntityIds: pattern.winnerIds.map((w) => ctx.entities.canonicalOf(w)),
         }),
       ];
     }

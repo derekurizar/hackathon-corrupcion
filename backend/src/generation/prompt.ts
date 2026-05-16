@@ -1,4 +1,11 @@
-import type { CaseBundle } from './rank.js';
+import { caseTotalValue, type CaseBundle } from './rank.js';
+import {
+  buildCaseDigest,
+  renderDigestBlock,
+  resolveDigestConfig,
+  type DigestConfig,
+} from './digest.js';
+import { renderSceneCatalog, chapterShortlists } from './scene-catalog.js';
 
 /**
  * Banned phrases (content sourced verbatim from idea/00-product.md
@@ -19,10 +26,8 @@ export const BANNED_PHRASES: string[] = [
 ];
 
 /** Mandatory closing caveat — fixed, privacy-safe wording (idea/00 / idea/04). */
-export const FIXED_CAVEAT_ES =
-  'Estas son señales de revisión, no conclusiones de ilegalidad.';
-export const FIXED_CAVEAT_EN =
-  'These are review signals, not conclusions of illegality.';
+export const FIXED_CAVEAT_ES = 'Estas son señales de revisión, no conclusiones de ilegalidad.';
+export const FIXED_CAVEAT_EN = 'These are review signals, not conclusions of illegality.';
 
 /**
  * Stable system prefix (idea/04 §"Prompt structure with prompt caching"). This
@@ -46,11 +51,14 @@ export function buildSystemPrefix(): string {
     '  "contracts worth reviewing" — never legal conclusions of guilt.',
     '- Every factual claim MUST trace to a provided evidence item. Do not invent',
     '  amounts, dates, names, percentages, or statistics not present in the evidence.',
+    '- The user block is an AGGREGATED CASE DIGEST: per-rule rollups plus a',
+    '  representative evidence sample. Rollup counts/sums ARE evidence you may',
+    '  cite. Only cite ev:<i> that literally appears in the block; never invent one.',
     '- If any supplier has entityType = individual or unknown, refer to them ONLY by',
     '  the anonymized label provided; never emit the raw personal name.',
     '',
     'ANONYMIZATION RULE',
-    "- Institutions and companies are named. Natural-person suppliers appear ONLY as",
+    '- Institutions and companies are named. Natural-person suppliers appear ONLY as',
     "  'an individual supplier' (EN) / 'un proveedor individual' (ES).",
     '',
     'OUTPUT — respond with ONLY valid JSON (no markdown fences), exactly this shape:',
@@ -78,11 +86,15 @@ export function buildSystemPrefix(): string {
     `- es.cierre.caveat MUST equal exactly: "${FIXED_CAVEAT_ES}"`,
     `- en.closing.caveat MUST equal exactly: "${FIXED_CAVEAT_EN}"`,
     '- podcast scripts ~150 words (≈60s) and end with the caveat in that language.',
-    '- scenePlan keys are the 7 chapters: cover, elCaso, sigueElDinero,',
-    '  lasConexiones, evidencia, cronologia, cierre. Pick a sceneId only from the',
-    '  data the evidence supports; quantitative params must carry a ref to a',
-    '  signal/evidence id.',
+    '- scenePlan has one entry per chapter (cover, elCaso, sigueElDinero,',
+    '  lasConexiones, evidencia, cronologia, cierre). For each, set sceneId to',
+    "  one of that chapter's ALLOWED SCENES (user block) and fill params per the",
+    '  SCENE CATALOG below. An invalid sceneId or params is discarded and the',
+    "  server's deterministic default scene is used — so prefer the (default)",
+    '  scene unless the evidence clearly supports a variant.',
     '- Respond ONLY with the JSON object. No prose, no markdown fences.',
+    '',
+    renderSceneCatalog(),
   ].join('\n');
 }
 
@@ -97,40 +109,18 @@ export function buildUserBlock(
   supplierLabelEs: string,
   supplierLabelEn: string,
   entityTypeHint: string,
+  digestCfg?: DigestConfig,
 ): string {
-  const signalLines = bundle.signals
-    .map(
-      (s) =>
-        `- rule_id=${s.rule_id} severity=${s.severity} ` +
-        `confidence=${s.confidence} family=${s.family}\n` +
-        `  explanation: ${s.explanation}\n` +
-        `  story_angle: ${s.story_angle}`,
-    )
-    .join('\n');
+  const cfg = digestCfg ?? resolveDigestConfig();
+  const digest = buildCaseDigest(bundle, cfg);
 
-  const evidenceLines = bundle.evidence
-    .map((e, i) => {
-      const parts = [`ev:${i} field=${e.field} value=${String(e.value)}`];
-      if (e.comparison !== undefined) parts.push(`comparison=${e.comparison}`);
-      if (e.benchmark !== undefined)
-        parts.push(`benchmark=${String(e.benchmark)}`);
-      return `- ${parts.join(' ')}`;
-    })
-    .join('\n');
-
-  // Headline value = max numeric evidence whose field hints money.
-  let totalValue = 0;
-  for (const e of bundle.evidence) {
-    const f = e.field.toLowerCase();
-    if (
-      (f.includes('value') || f.includes('amount')) &&
-      typeof e.value === 'number' &&
-      Number.isFinite(e.value) &&
-      e.value > totalValue
-    ) {
-      totalValue = e.value;
-    }
-  }
+  const hasBenchmark = bundle.signals.some((s) =>
+    s.evidence.some((e) => e.benchmark !== undefined),
+  );
+  const allowedSceneLines = chapterShortlists(bundle.firedRuleIds, hasBenchmark).map(
+    ({ chapter, scenes }) =>
+      `- ${chapter}: ${scenes.map((s, i) => (i === 0 ? `${s} (default)` : s)).join(', ')}`,
+  );
 
   return [
     `CASE ${bundle.caseKey} — signal family ${bundle.family}`,
@@ -141,13 +131,13 @@ export function buildUserBlock(
     `- supplier: label_es="${supplierLabelEs}" label_en="${supplierLabelEn}" ` +
       `entityType=${entityTypeHint}`,
     '',
-    'FIRED SIGNALS',
-    signalLines || '- (none)',
+    renderDigestBlock(digest),
     '',
-    'EVIDENCE (the only facts you may use; ev:<i> are stable refs)',
-    evidenceLines || '- (none)',
+    'ALLOWED SCENES (set scenePlan[chapter].sceneId to one of these; ' +
+      'fill params per the SCENE CATALOG)',
+    ...allowedSceneLines,
     '',
-    `totalValue: ${totalValue}`,
+    `totalValue: ${caseTotalValue(bundle.signals)}`,
     'currency: GTQ',
     '',
     'Use ONLY the facts provided here. Do not invent amounts, dates, names, or',

@@ -31,29 +31,23 @@ function entities(topCount: number, total: number) {
 
 describe('buyer_dependence_on_supplier (rule 8, F2)', () => {
   it('fires medium at count-share 0.55', () => {
-    const out = rule.run(
-      makeCtx({ release: makeRelease(), entities: entities(11, 20) }),
-    );
+    const out = rule.run(makeCtx({ release: makeRelease(), entities: entities(11, 20) }));
     expect(out).toHaveLength(1);
     expect(out[0]!.severity).toBe('medium');
   });
 
   it('fires high at count-share >= 0.65', () => {
-    const out = rule.run(
-      makeCtx({ release: makeRelease(), entities: entities(15, 20) }),
-    );
+    const out = rule.run(makeCtx({ release: makeRelease(), entities: entities(15, 20) }));
     expect(out[0]!.severity).toBe('high');
   });
 
   it('does NOT fire below the award-count floor', () => {
-    expect(
-      rule.run(makeCtx({ release: makeRelease(), entities: entities(3, 4) })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease(), entities: entities(3, 4) }))).toHaveLength(0);
   });
 
   it('does NOT fire when share below threshold', () => {
-    expect(
-      rule.run(makeCtx({ release: makeRelease(), entities: entities(2, 20) })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease(), entities: entities(2, 20) }))).toHaveLength(
+      0,
+    );
   });
 });

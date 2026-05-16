@@ -9,6 +9,7 @@ export * from './repositories/index.js';
 export * from './detection/index.js';
 export * from './identity/index.js';
 export * from './scene-contract/index.js';
+export { moduleLogger, resolveLogDir, resolveLogLevel } from './obs/logger.js';
 // `ScenePlanEntry` is exported by both './schema' (Area 03 persistence shape)
 // and './scene-contract' (Area 06 contract shape). They are structurally
 // identical (`{ sceneId; params; source }`). Disambiguate the wildcard

@@ -24,9 +24,7 @@ describe('burst_clustering (rule 19, F4)', () => {
         [BUYER]: { medianWeeklyAwardCount: 4, p75WeeklyAwardCount: 5 },
       },
     });
-    expect(
-      rule.run(makeCtx({ release: makeRelease(), benchmarks: bench })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease(), benchmarks: bench }))).toHaveLength(0);
   });
 
   it('does NOT fire below the absolute award floor', () => {
@@ -35,9 +33,7 @@ describe('burst_clustering (rule 19, F4)', () => {
         [BUYER]: { medianWeeklyAwardCount: 0.5, p75WeeklyAwardCount: 2 },
       },
     });
-    expect(
-      rule.run(makeCtx({ release: makeRelease(), benchmarks: bench })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease(), benchmarks: bench }))).toHaveLength(0);
   });
 
   it('does NOT fire when buyer has no weekly baseline', () => {

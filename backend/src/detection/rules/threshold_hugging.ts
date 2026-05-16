@@ -47,9 +47,7 @@ registerRule({
                 },
               ],
               primaryEntityId: buyerId,
-              secondaryEntityIds: award.supplierIds.map((s) =>
-                ctx.entities.canonicalOf(s),
-              ),
+              secondaryEntityIds: award.supplierIds.map((s) => ctx.entities.canonicalOf(s)),
             }),
           );
           break; // one signal per award (closest band wins by iteration order)

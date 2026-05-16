@@ -12,9 +12,7 @@ describe('caseKey', () => {
   it('matches a fixed sha256 vector and is 64-char hex', () => {
     // sha256('GT-NIT:4132726|F2|2025-08..2026-07') — locks the caseKey contract.
     const expected = caseKey('GT-NIT:4132726', 'F2', '2025-08..2026-07');
-    expect(expected).toBe(
-      'f14d25fa803d0758d9e81692f8d1d7017ebd8a93dc08ca05506befc8bd107e41',
-    );
+    expect(expected).toBe('f14d25fa803d0758d9e81692f8d1d7017ebd8a93dc08ca05506befc8bd107e41');
     expect(expected).toHaveLength(64);
     expect(/^[0-9a-f]+$/.test(expected)).toBe(true);
   });
@@ -82,9 +80,9 @@ describe('deriveEntityType', () => {
     );
   });
   it('detects individual from legalEntityTypeDetail', () => {
-    expect(
-      deriveEntityType({ legalEntityTypeDetail: 'Persona Individual', name: '' }),
-    ).toBe('individual');
+    expect(deriveEntityType({ legalEntityTypeDetail: 'Persona Individual', name: '' })).toBe(
+      'individual',
+    );
   });
   it('detects company from name pattern', () => {
     expect(deriveEntityType({ name: 'CONSTRUCTORA S.A.' })).toBe('company');

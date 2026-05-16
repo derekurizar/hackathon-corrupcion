@@ -90,8 +90,7 @@ describe.skipIf(!hasAtlas)('repositories integration', () => {
     const current = await getCurrentEdition();
     expect(current).not.toBeNull();
     const isCurrent =
-      current?._id === doc._id ||
-      (current !== null && current.publishedAt >= doc.publishedAt);
+      current?._id === doc._id || (current !== null && current.publishedAt >= doc.publishedAt);
     expect(isCurrent).toBe(true);
   }, 20_000);
 

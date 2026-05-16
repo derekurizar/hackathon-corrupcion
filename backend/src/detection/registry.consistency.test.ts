@@ -36,9 +36,7 @@ describe('firedRulesShortlist', () => {
   it('maps rule-id names → ordinals → deterministic scene shortlist', () => {
     // Rule 13 (price_outlier_vs_category) → ordinal 13 → PriceBars in
     // sigueElDinero.
-    const scenes = firedRulesShortlist('sigueElDinero', [
-      'price_outlier_vs_category',
-    ]);
+    const scenes = firedRulesShortlist('sigueElDinero', ['price_outlier_vs_category']);
     expect(scenes[0]).toBe('MoneyFlowStreams'); // guaranteed default
     expect(scenes).toContain('PriceBars');
   });

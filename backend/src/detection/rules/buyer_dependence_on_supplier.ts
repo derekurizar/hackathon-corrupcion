@@ -38,11 +38,7 @@ registerRule({
         ocid: release.ocid,
         family: 'F2',
         severity,
-        confidence: confidence(
-          share,
-          config.RULE_8_COUNT_SHARE_THRESHOLD,
-          config.RULE_8_SCALE,
-        ),
+        confidence: confidence(share, config.RULE_8_COUNT_SHARE_THRESHOLD, config.RULE_8_SCALE),
         title: 'buyer_dependence_on_supplier.title',
         explanation: 'buyer_dependence_on_supplier.explanation',
         story_angle:

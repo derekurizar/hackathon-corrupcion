@@ -40,8 +40,8 @@ export interface ReleaseReference {
   tag: ReleaseTag[];
 }
 
-export type ReleaseTag = "tender" | "award" | "contract" | string;
-export type CompiledTag = "compiled" | string;
+export type ReleaseTag = 'tender' | 'award' | 'contract' | string;
+export type CompiledTag = 'compiled' | string;
 
 export interface CompiledRelease {
   ocid: string;
@@ -78,7 +78,7 @@ export interface Party {
   name: string;
 }
 
-export type PartyRole = "buyer" | "tenderer" | "supplier" | string;
+export type PartyRole = 'buyer' | 'tenderer' | 'supplier' | string;
 
 export interface Identifier {
   scheme: string;
@@ -133,7 +133,7 @@ export interface BidDetail {
   id: string;
 }
 
-export type BidStatus = "valid" | string;
+export type BidStatus = 'valid' | string;
 
 export interface Tender {
   title: string;
@@ -154,11 +154,18 @@ export interface Tender {
   id: string;
 }
 
-export type TenderStatus = "active" | "complete" | "unsuccessful" | "withdrawn" | string;
-export type TenderStatusDetails = "Evaluación" | "Vigente" | "Adjudicado" | "Desierto" | "Prescindido" | "No adjudicado" | string;
-export type ProcurementMethod = "open" | string;
-export type MainProcurementCategory = "goods" | "services" | "works" | string;
-export type SubmissionMethod = "electronicSubmission" | "written" | string;
+export type TenderStatus = 'active' | 'complete' | 'unsuccessful' | 'withdrawn' | string;
+export type TenderStatusDetails =
+  | 'Evaluación'
+  | 'Vigente'
+  | 'Adjudicado'
+  | 'Desierto'
+  | 'Prescindido'
+  | 'No adjudicado'
+  | string;
+export type ProcurementMethod = 'open' | string;
+export type MainProcurementCategory = 'goods' | 'services' | 'works' | string;
+export type SubmissionMethod = 'electronicSubmission' | 'written' | string;
 
 export interface TenderPeriod {
   startDate: DateTimeString;
@@ -190,9 +197,9 @@ export interface ItemAttribute {
 }
 
 export type ItemAttributeName =
-  | "Tipo de obligatoriedad"
-  | "Características"
-  | "Características Adicionales"
+  | 'Tipo de obligatoriedad'
+  | 'Características'
+  | 'Características Adicionales'
   | string;
 
 export interface TenderDocument {
@@ -216,7 +223,7 @@ export interface Award {
   id: string;
 }
 
-export type AwardStatus = "active" | string;
+export type AwardStatus = 'active' | string;
 
 export interface Contract {
   id: string;
@@ -231,7 +238,7 @@ export interface Contract {
   documents: ContractDocument[];
 }
 
-export type ContractStatus = "active" | string;
+export type ContractStatus = 'active' | string;
 
 export interface ContractPeriod {
   startDate: DateTimeString;

@@ -99,24 +99,16 @@ describe('resolveRef', () => {
   });
 
   it('resolves sig:<id> to the signal evidence array', () => {
-    expect(resolveRef(parseRef('sig:single_bidder')!, [sigA, sigB], [])).toEqual(
-      sigA.evidence,
-    );
+    expect(resolveRef(parseRef('sig:single_bidder')!, [sigA, sigB], [])).toEqual(sigA.evidence);
   });
 
   it('resolves sig:<id>.<path> via dotted walk', () => {
-    expect(
-      resolveRef(parseRef('sig:single_bidder.evidence.0.value')!, [sigA], []),
-    ).toBe(1);
-    expect(
-      resolveRef(parseRef('sig:single_bidder.severity')!, [sigA], []),
-    ).toBe('high');
+    expect(resolveRef(parseRef('sig:single_bidder.evidence.0.value')!, [sigA], [])).toBe(1);
+    expect(resolveRef(parseRef('sig:single_bidder.severity')!, [sigA], [])).toBe('high');
   });
 
   it('returns undefined for an unknown rule id or bad path', () => {
     expect(resolveRef(parseRef('sig:nope')!, [sigA], [])).toBeUndefined();
-    expect(
-      resolveRef(parseRef('sig:single_bidder.evidence.9.value')!, [sigA], []),
-    ).toBeUndefined();
+    expect(resolveRef(parseRef('sig:single_bidder.evidence.9.value')!, [sigA], [])).toBeUndefined();
   });
 });

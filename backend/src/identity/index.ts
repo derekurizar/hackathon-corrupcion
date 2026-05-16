@@ -25,9 +25,7 @@ export function caseKey(buyerId: string, family: string, scope: string): string 
  * Changing this function invalidates all stored evidenceHash values → duplicate
  * articles. Add a fixed-vector regression test for any change.
  */
-export function evidenceHash(
-  signals: Pick<Signal, 'rule_id' | 'ocid' | 'evidence'>[],
-): string {
+export function evidenceHash(signals: Pick<Signal, 'rule_id' | 'ocid' | 'evidence'>[]): string {
   const sorted = [...signals].sort((a, b) => {
     const byRule = a.rule_id.localeCompare(b.rule_id);
     return byRule !== 0 ? byRule : a.ocid.localeCompare(b.ocid);
@@ -48,9 +46,7 @@ export function evidenceHash(
   const stable = JSON.stringify(normalized, (_key, val: unknown) => {
     if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
       return Object.fromEntries(
-        Object.entries(val as Record<string, unknown>).sort(([a], [b]) =>
-          a.localeCompare(b),
-        ),
+        Object.entries(val as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)),
       );
     }
     return val;

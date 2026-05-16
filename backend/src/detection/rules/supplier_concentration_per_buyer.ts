@@ -41,11 +41,7 @@ registerRule({
         ocid: release.ocid,
         family: 'F2',
         severity,
-        confidence: confidence(
-          share,
-          config.RULE_7_SHARE_THRESHOLD,
-          config.RULE_7_SCALE,
-        ),
+        confidence: confidence(share, config.RULE_7_SHARE_THRESHOLD, config.RULE_7_SCALE),
         title: 'supplier_concentration_per_buyer.title',
         explanation: 'supplier_concentration_per_buyer.explanation',
         story_angle:

@@ -51,9 +51,7 @@ describe.skipIf(!hasAtlas)('buildBenchmarks (Atlas)', () => {
 
   it('persists a family median equal to the raw recomputation + scope _id', async () => {
     const { buildBenchmarks } = await import('./build-benchmarks.js');
-    const { getBenchmarkByScope } = await import(
-      '../repositories/benchmarks.js'
-    );
+    const { getBenchmarkByScope } = await import('../repositories/benchmarks.js');
     const result = await buildBenchmarks({});
     expect(result.scope).toMatch(/^scope:\d{4}-\d{2}\.\.\d{4}-\d{2}$/);
 

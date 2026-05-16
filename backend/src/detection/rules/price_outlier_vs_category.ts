@@ -34,12 +34,9 @@ registerRule({
     const isMedianOutlier = medianMult >= config.RULE_13_MEDIAN_MULT;
     if (!isIqrOutlier && !isMedianOutlier) return [];
 
-    const severity =
-      medianMult >= config.RULE_13_HIGH_MEDIAN_MULT ? 'high' : 'medium';
+    const severity = medianMult >= config.RULE_13_HIGH_MEDIAN_MULT ? 'high' : 'medium';
     const buyerId = ctx.entities.canonicalOf(release.buyer.id);
-    const suppliers = release.awards[0]!.supplierIds.map((s) =>
-      ctx.entities.canonicalOf(s),
-    );
+    const suppliers = release.awards[0]!.supplierIds.map((s) => ctx.entities.canonicalOf(s));
 
     return [
       makeSignal({
@@ -47,15 +44,10 @@ registerRule({
         ocid: release.ocid,
         family: 'F3',
         severity,
-        confidence: confidence(
-          medianMult,
-          config.RULE_13_MEDIAN_MULT,
-          config.RULE_13_SCALE,
-        ),
+        confidence: confidence(medianMult, config.RULE_13_MEDIAN_MULT, config.RULE_13_SCALE),
         title: 'price_outlier_vs_category.title',
         explanation: 'price_outlier_vs_category.explanation',
-        story_angle:
-          'This award is priced far above comparable contracts in the same category.',
+        story_angle: 'This award is priced far above comparable contracts in the same category.',
         evidence: [
           {
             field: 'awards[].value.amount',

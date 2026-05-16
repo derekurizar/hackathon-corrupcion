@@ -30,11 +30,7 @@ registerRule({
         ocid: release.ocid,
         family: 'F4',
         severity: 'medium',
-        confidence: confidence(
-          config.RULE_20_MIN_DAYS - days,
-          0,
-          config.RULE_20_SCALE,
-        ),
+        confidence: confidence(config.RULE_20_MIN_DAYS - days, 0, config.RULE_20_SCALE),
         title: 'short_tender_period.title',
         explanation: 'short_tender_period.explanation',
         story_angle:
@@ -52,9 +48,7 @@ registerRule({
           },
         ],
         primaryEntityId: buyerId,
-        secondaryEntityIds: release.awards[0]!.supplierIds.map((s) =>
-          ctx.entities.canonicalOf(s),
-        ),
+        secondaryEntityIds: release.awards[0]!.supplierIds.map((s) => ctx.entities.canonicalOf(s)),
       }),
     ];
   },

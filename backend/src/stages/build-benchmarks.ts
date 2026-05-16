@@ -1,15 +1,10 @@
 import { loadConfig } from '../config/env.js';
+import { moduleLogger } from '../obs/logger.js';
 import { BenchmarkSchema, type Benchmark } from '../schema/benchmarks.js';
 import type { Entity } from '../schema/entities.js';
 import type { CuratedRelease } from '../schema/curated-release.js';
-import {
-  iterateCuratedReleases,
-  upsertBenchmark,
-} from '../repositories/index.js';
-import {
-  getAllEntities,
-  bulkSetEntityRollups,
-} from '../repositories/entities.js';
+import { iterateCuratedReleases, upsertBenchmark } from '../repositories/index.js';
+import { getAllEntities, bulkSetEntityRollups } from '../repositories/entities.js';
 import {
   startRun,
   markStage,
@@ -37,7 +32,7 @@ export interface BuildBenchmarksResult {
   runId?: string;
 }
 
-const log = (m: string): void => console.error(`[benchmarks] ${m}`);
+const log = moduleLogger('benchmarks');
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -59,8 +54,7 @@ function weekKey(iso: string): string {
   const thursday = new Date(d.getTime() - day * MS_PER_DAY + 3 * MS_PER_DAY);
   const year = thursday.getUTCFullYear();
   const jan1 = Date.UTC(year, 0, 1);
-  const week =
-    1 + Math.floor((thursday.getTime() - jan1) / (7 * MS_PER_DAY));
+  const week = 1 + Math.floor((thursday.getTime() - jan1) / (7 * MS_PER_DAY));
   return `${year}-W${String(week).padStart(2, '0')}`;
 }
 
@@ -160,10 +154,7 @@ export async function buildBenchmarks(
   // per buyer → setKey → {tendererIds, winners count by id, occurrences}
   const tendererSets = new Map<
     string,
-    Map<
-      string,
-      { tendererIds: string[]; winCount: Map<string, number>; occurrences: number }
-    >
+    Map<string, { tendererIds: string[]; winCount: Map<string, number>; occurrences: number }>
   >();
 
   let minMonth = '';
@@ -243,10 +234,7 @@ export async function buildBenchmarks(
         const bmc = buyerMethodCount.get(buyerId) ?? new Map();
         buyerMethodCount.set(buyerId, bmc);
         bmc.set(method, (bmc.get(method) ?? 0) + 1);
-        nationalMethodValue.set(
-          method,
-          (nationalMethodValue.get(method) ?? 0) + amount,
-        );
+        nationalMethodValue.set(method, (nationalMethodValue.get(method) ?? 0) + amount);
 
         // Buyer weekly award counts (Rule 19).
         const wk = weekKey(award.date);
@@ -258,10 +246,7 @@ export async function buildBenchmarks(
 
         for (const rawSid of award.supplierIds) {
           const sid = rawToCanonical(rawSid);
-          br.supplierValue.set(
-            sid,
-            (br.supplierValue.get(sid) ?? 0) + amount,
-          );
+          br.supplierValue.set(sid, (br.supplierValue.get(sid) ?? 0) + amount);
           br.supplierCount.set(sid, (br.supplierCount.get(sid) ?? 0) + 1);
 
           const sr = supplierRollup.get(sid) ?? emptyRollup();
@@ -299,9 +284,11 @@ export async function buildBenchmarks(
           const key = ids.join(',');
           const perBuyer = tendererSets.get(buyerId) ?? new Map();
           tendererSets.set(buyerId, perBuyer);
-          const entry =
-            perBuyer.get(key) ??
-            { tendererIds: ids, winCount: new Map<string, number>(), occurrences: 0 };
+          const entry = perBuyer.get(key) ?? {
+            tendererIds: ids,
+            winCount: new Map<string, number>(),
+            occurrences: 0,
+          };
           entry.occurrences++;
           const winners = new Set(release.awards.flatMap((a) => a.supplierIds));
           for (const w of winners) {
@@ -332,12 +319,7 @@ export async function buildBenchmarks(
 
   // --- Derive categoryPrice (family + segment + category levels) ---
   const categoryPrice: Benchmark['categoryPrice'] = {};
-  const addLevel = (
-    key: string,
-    vals: number[],
-    tcs: number[],
-    level: string,
-  ): void => {
+  const addLevel = (key: string, vals: number[], tcs: number[], level: string): void => {
     categoryPrice[key] = {
       median: median(vals),
       p25: percentile(vals, 25),
@@ -385,10 +367,7 @@ export async function buildBenchmarks(
   }
 
   // nationalMethodBaseline: value share per method nationally.
-  const nationalTotal = [...nationalMethodValue.values()].reduce(
-    (a, b) => a + b,
-    0,
-  );
+  const nationalTotal = [...nationalMethodValue.values()].reduce((a, b) => a + b, 0);
   const nationalMethodBaseline: Record<string, number> = {};
   for (const [m, v] of nationalMethodValue) {
     nationalMethodBaseline[m] = nationalTotal > 0 ? v / nationalTotal : 0;
@@ -434,18 +413,12 @@ export async function buildBenchmarks(
       const startMs = parseDateMs(sorted[i]!.date) ?? 0;
       const windowMs = config.RULE_18_WINDOW_DAYS * MS_PER_DAY;
       let j = i;
-      while (
-        j < sorted.length &&
-        (parseDateMs(sorted[j]!.date) ?? 0) - startMs <= windowMs
-      ) {
+      while (j < sorted.length && (parseDateMs(sorted[j]!.date) ?? 0) - startMs <= windowMs) {
         j++;
       }
       const slice = sorted.slice(i, j);
       const sum = slice.reduce((s, x) => s + x.amount, 0);
-      if (
-        slice.length >= config.RULE_18_MIN_AWARDS &&
-        sum >= config.LCE_COMPRA_DIRECTA_MAX
-      ) {
+      if (slice.length >= config.RULE_18_MIN_AWARDS && sum >= config.LCE_COMPRA_DIRECTA_MAX) {
         const first = slice[0]!;
         splittingClusters.push({
           buyerId: first.buyerId,

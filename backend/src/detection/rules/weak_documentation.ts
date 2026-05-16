@@ -31,8 +31,7 @@ registerRule({
         confidence: confidence(amount, config.RULE_22_MIN_VALUE, config.RULE_22_SCALE),
         title: 'weak_documentation.title',
         explanation: 'weak_documentation.explanation',
-        story_angle:
-          'A high-value contract was awarded with almost no supporting documentation.',
+        story_angle: 'A high-value contract was awarded with almost no supporting documentation.',
         evidence: [
           {
             field: 'tender.documentsSummary.count',
@@ -50,9 +49,7 @@ registerRule({
           },
         ],
         primaryEntityId: buyerId,
-        secondaryEntityIds: release.awards[0]!.supplierIds.map((s) =>
-          ctx.entities.canonicalOf(s),
-        ),
+        secondaryEntityIds: release.awards[0]!.supplierIds.map((s) => ctx.entities.canonicalOf(s)),
       }),
     ];
   },

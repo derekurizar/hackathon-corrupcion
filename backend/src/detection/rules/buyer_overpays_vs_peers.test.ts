@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import './buyer_overpays_vs_peers.js';
 import { ruleById, makeCtx } from '../__fixtures__/ctx.js';
-import {
-  makeRelease,
-  makeBenchmark,
-  makeEntityIndex,
-} from '../__fixtures__/release.js';
+import { makeRelease, makeBenchmark, makeEntityIndex } from '../__fixtures__/release.js';
 
 const rule = ruleById('buyer_overpays_vs_peers');
 const BUYER = 'GT-NIT:4132726';

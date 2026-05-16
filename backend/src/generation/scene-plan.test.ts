@@ -26,9 +26,7 @@ const signals: SceneSignal[] = [
     ocid: 'ocds-abc-001',
     family: 'F1',
     severity: 'high',
-    evidence: [
-      { field: 'awards.value.amount', value: 650000, comparison: '3x median' },
-    ],
+    evidence: [{ field: 'awards.value.amount', value: 650000, comparison: '3x median' }],
   },
 ];
 
@@ -36,13 +34,7 @@ const evidence: SceneEvidenceItem[] = investigation.evidence;
 
 describe('resolveScenePlan', () => {
   it('always emits all 7 chapters', () => {
-    const out = resolveScenePlan(
-      ['single_bidder'],
-      {},
-      signals,
-      evidence,
-      investigation,
-    );
+    const out = resolveScenePlan(['single_bidder'], {}, signals, evidence, investigation);
     expect(Object.keys(out).sort()).toEqual(
       [
         'cover',

@@ -44,10 +44,7 @@ export function toCuratedRelease(
   // party.id (verbatim) → canonicalEntityId(scheme, id)
   const partiesMap = new Map<string, string>();
   for (const party of cr.parties ?? []) {
-    partiesMap.set(
-      party.id,
-      canonicalEntityId(party.identifier.scheme, party.identifier.id),
-    );
+    partiesMap.set(party.id, canonicalEntityId(party.identifier.scheme, party.identifier.id));
   }
 
   // buyer.id → canonical id when the buyer party is present, else raw id.
@@ -68,11 +65,7 @@ export function toCuratedRelease(
 
   const docs = cr.tender.documents ?? [];
   const docTypes = [
-    ...new Set(
-      docs
-        .map((d) => d.documentType)
-        .filter((t): t is string => typeof t === 'string'),
-    ),
+    ...new Set(docs.map((d) => d.documentType).filter((t): t is string => typeof t === 'string')),
   ];
   const firstDatePublished =
     docs.length === 0
@@ -155,12 +148,8 @@ export function toCuratedRelease(
 
   const parsed = CuratedReleaseSchema.safeParse(result);
   if (!parsed.success) {
-    const detail = parsed.error.issues
-      .map((i) => `${i.path.join('.')}: ${i.message}`)
-      .join('; ');
-    throw new Error(
-      `Curated release failed schema validation for ocid ${cr.ocid}: ${detail}`,
-    );
+    const detail = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+    throw new Error(`Curated release failed schema validation for ocid ${cr.ocid}: ${detail}`);
   }
   return parsed.data;
 }

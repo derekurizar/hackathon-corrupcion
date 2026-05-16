@@ -15,10 +15,5 @@ export const validCaseStatement = {
 // invalid: facts exceeds max of 3
 export const invalidCaseStatement = {
   ...validCaseStatement,
-  facts: [
-    { text: 'a' },
-    { text: 'b' },
-    { text: 'c' },
-    { text: 'd' },
-  ],
+  facts: [{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }],
 };

@@ -27,9 +27,7 @@ registerRule({
     const winnerNotLowest = winnerBid.amount > lowest.amount;
     // winner / next-lowest distinct bid ratio
     const reference =
-      winnerBid.tendererId === lowest.tendererId
-        ? secondLowest.amount
-        : lowest.amount;
+      winnerBid.tendererId === lowest.tendererId ? secondLowest.amount : lowest.amount;
     const winnerRatio = reference > 0 ? winnerBid.amount / reference : 0;
     const tightWinner = winnerRatio >= config.RULE_17_WINNER_RATIO;
 
@@ -47,15 +45,10 @@ registerRule({
         ocid: release.ocid,
         family: 'F3',
         severity: 'medium',
-        confidence: confidence(
-          winnerRatio,
-          config.RULE_17_WINNER_RATIO,
-          config.RULE_17_SCALE,
-        ),
+        confidence: confidence(winnerRatio, config.RULE_17_WINNER_RATIO, config.RULE_17_SCALE),
         title: 'low_discount_winner.title',
         explanation: 'low_discount_winner.explanation',
-        story_angle:
-          'Despite a wide spread of bids, the winner offered little or no discount.',
+        story_angle: 'Despite a wide spread of bids, the winner offered little or no discount.',
         evidence: [
           {
             field: 'bids[].amount',

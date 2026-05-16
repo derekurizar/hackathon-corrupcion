@@ -59,9 +59,7 @@ registerRule({
           },
         ],
         primaryEntityId: buyerId,
-        secondaryEntityIds: release.awards[0]!.supplierIds.map((s) =>
-          ctx.entities.canonicalOf(s),
-        ),
+        secondaryEntityIds: release.awards[0]!.supplierIds.map((s) => ctx.entities.canonicalOf(s)),
       }),
     ];
   },

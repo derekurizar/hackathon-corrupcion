@@ -11,9 +11,7 @@ import type { ScenePlan, SceneSignal, SceneEvidenceItem } from './types.js';
 // (`true` not assignable to `never`).
 
 // Area 06 ScenePlan ⊆ Area 03's permissive `Investigation['scenePlan']`.
-type _ScenePlanCompat = ScenePlan extends Investigation['scenePlan']
-  ? true
-  : never;
+type _ScenePlanCompat = ScenePlan extends Investigation['scenePlan'] ? true : never;
 const _scenePlanCompat: _ScenePlanCompat = true;
 
 // Area 03 Signal ⊆ scene-contract SceneSignal (every field SceneSignal needs
@@ -22,9 +20,7 @@ type _SignalCompat = Signal extends SceneSignal ? true : never;
 const _signalCompat: _SignalCompat = true;
 
 // Area 03 evidence item ⊆ SceneEvidenceItem.
-type _EvidenceCompat = Signal['evidence'][number] extends SceneEvidenceItem
-  ? true
-  : never;
+type _EvidenceCompat = Signal['evidence'][number] extends SceneEvidenceItem ? true : never;
 const _evidenceCompat: _EvidenceCompat = true;
 
 // NOTE: a whole-`Investigation` ⊆ `SceneInvestigation` assertion is

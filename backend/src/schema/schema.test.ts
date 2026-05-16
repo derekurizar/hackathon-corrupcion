@@ -9,10 +9,7 @@ import { PipelineRunSchema } from './pipeline-runs.js';
 import { validEntity } from './entities.fixtures.js';
 import { validBenchmark } from './benchmarks.fixtures.js';
 import { validSignal } from './signals.fixtures.js';
-import {
-  validInvestigation,
-  validInvestigationWithAudio,
-} from './investigations.fixtures.js';
+import { validInvestigation, validInvestigationWithAudio } from './investigations.fixtures.js';
 import { validEdition } from './editions.fixtures.js';
 import { validDashboardStats } from './dashboard-stats.fixtures.js';
 import { validPipelineRun } from './pipeline-runs.fixtures.js';

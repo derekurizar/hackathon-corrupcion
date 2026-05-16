@@ -1,17 +1,11 @@
-import type {
-  Chapter,
-  SceneSignal,
-  SceneEvidenceItem,
-  SceneInvestigation,
-} from './types.js';
+import type { Chapter, SceneSignal, SceneEvidenceItem, SceneInvestigation } from './types.js';
 import { flattenCaseEvidence } from './refs.js';
 
 /**
  * The mandatory non-empty caveat (idea/05 validator rule 5). Fixed,
  * privacy-safe wording — never says "corruption/fraud/illegal".
  */
-export const FIXED_CAVEAT =
-  'Estas son señales de revisión, no conclusiones de ilegalidad.';
+export const FIXED_CAVEAT = 'Estas son señales de revisión, no conclusiones de ilegalidad.';
 
 const PLACEHOLDER_ES = 'Datos públicos en revisión.';
 
@@ -75,10 +69,7 @@ export function deriveFromEvidence(
     }
 
     case 'sigueElDinero': {
-      const amount =
-        investigation.totalValue > 0
-          ? investigation.totalValue
-          : firstNumber(flat);
+      const amount = investigation.totalValue > 0 ? investigation.totalValue : firstNumber(flat);
       return {
         buyer: investigation.buyer.name,
         totalValue: investigation.totalValue,
@@ -107,10 +98,7 @@ export function deriveFromEvidence(
           {
             supplierId: investigation.supplier.id,
             supplierDisplay: investigation.supplier.displayNameEs,
-            value:
-              investigation.totalValue > 0
-                ? investigation.totalValue
-                : firstNumber(flat),
+            value: investigation.totalValue > 0 ? investigation.totalValue : firstNumber(flat),
             valueRef: '',
             share: 1,
             shareRef: '',
@@ -143,9 +131,7 @@ export function deriveFromEvidence(
 
     case 'cronologia': {
       return {
-        events: [
-          { date: '', kind: 'award', label: 'Adjudicación' },
-        ],
+        events: [{ date: '', kind: 'award', label: 'Adjudicación' }],
         missingStages: ['published', 'tenderClose', 'contractSigned'],
         highlightIdx: 0,
         caption: PLACEHOLDER_ES,

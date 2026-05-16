@@ -33,9 +33,7 @@ describe('new_supplier_large_first_award (rule 11, F2)', () => {
         },
       },
     });
-    const out = rule.run(
-      makeCtx({ release: makeRelease({ awards: bigAward }), entities }),
-    );
+    const out = rule.run(makeCtx({ release: makeRelease({ awards: bigAward }), entities }));
     expect(out).toHaveLength(1);
     expect(out[0]!.severity).toBe('medium');
   });
@@ -73,8 +71,6 @@ describe('new_supplier_large_first_award (rule 11, F2)', () => {
         },
       },
     });
-    expect(rule.run(makeCtx({ release: makeRelease(), entities }))).toHaveLength(
-      0,
-    );
+    expect(rule.run(makeCtx({ release: makeRelease(), entities }))).toHaveLength(0);
   });
 });

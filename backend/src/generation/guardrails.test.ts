@@ -1,7 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
+
+// buildUserBlock now resolves the digest config lazily via loadConfig (which
+// throws without env). Mock it for hermetic unit tests, like rank.test.ts.
+vi.mock('../config/env.js', () => ({
+  loadConfig: () => ({
+    MAX_INVESTIGATIONS_PER_RUN: 20,
+    EVIDENCE_SAMPLE_PER_RULE: 6,
+    MAX_REPRESENTATIVE_EVIDENCE: 60,
+  }),
+}));
+
 import { checkGuardrails, generateStoryGuarded } from './guardrails.js';
 import { BANNED_PHRASES } from './prompt.js';
 import type { ClaudeClient, ClaudeStoryRaw } from './claude.js';
+import type { Signal } from '../schema/index.js';
 import type { CaseBundle } from './rank.js';
 
 function bundle(): CaseBundle {
@@ -49,13 +61,7 @@ function story(over?: Partial<ClaudeStoryRaw>): ClaudeStoryRaw {
 
 describe('checkGuardrails', () => {
   it('clean story → ok', () => {
-    const r = checkGuardrails(
-      story(),
-      bundle(),
-      'CONSTRUCTORA S.A.',
-      'company',
-      BANNED_PHRASES,
-    );
+    const r = checkGuardrails(story(), bundle(), 'CONSTRUCTORA S.A.', 'company', BANNED_PHRASES);
     expect(r.ok).toBe(true);
   });
 
@@ -76,14 +82,46 @@ describe('checkGuardrails', () => {
   it('raw individual name leak → fail', () => {
     const s = story();
     s.es.elCaso = 'PEREZ,LOPEZ,,JUAN, recibió 650000.';
-    const r = checkGuardrails(
-      s,
-      bundle(),
-      'PEREZ,LOPEZ,,JUAN,',
-      'individual',
-      BANNED_PHRASES,
-    );
+    const r = checkGuardrails(s, bundle(), 'PEREZ,LOPEZ,,JUAN,', 'individual', BANNED_PHRASES);
     expect(r.ok).toBe(false);
+  });
+
+  it('keyFinding maps to FULL bundle.evidence, not the prompt sample', () => {
+    // 30 signals → 30 evidence items; a distinctive value sits deep in the
+    // array, far outside any small representative sample the prompt would
+    // show. Guardrails must still trace it because they read full evidence.
+    const signals: Signal[] = Array.from({ length: 30 }, (_, i) => ({
+      _id: `s${i}`,
+      ocid: `ocds-${String(i).padStart(3, '0')}`,
+      caseKey: 'CKbig',
+      rule_id: 'single_bidder',
+      family: 'F1' as const,
+      severity: 'low' as const,
+      confidence: 0.3,
+      primaryEntityId: 'GT-NIT:1',
+      secondaryEntityIds: ['GT-NIT:sup'],
+      timeWindow: 'scope:2026-01..2026-01',
+      title: 't',
+      explanation: 'e',
+      story_angle: 'a',
+      evidence: [{ field: 'awards[].value.amount', value: i === 27 ? 777777 : 1000 }],
+    }));
+    const big: CaseBundle = {
+      caseKey: 'CKbig',
+      buyer: { id: 'GT-NIT:1', name: 'Ministerio X' },
+      family: 'F1',
+      scope: 'scope:2026-01..2026-01',
+      signals,
+      evidence: signals.flatMap((s) => s.evidence),
+      entities: { supplierIds: ['GT-NIT:sup'] },
+      firedRuleIds: ['single_bidder'],
+      isLead: false,
+    };
+    const s = story();
+    s.es.keyFindings = ['awards[].value.amount 777777'];
+    s.en.keyFindings = ['awards[].value.amount 777777'];
+    const r = checkGuardrails(s, big, 'X', 'company', BANNED_PHRASES);
+    expect(r.ok).toBe(true);
   });
 });
 

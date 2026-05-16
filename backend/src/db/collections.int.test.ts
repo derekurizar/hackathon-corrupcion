@@ -10,16 +10,12 @@ describe.skipIf(!hasAtlas)('collections integration', () => {
   });
 
   // First accessor triggers the Atlas connect; allow for remote latency.
-  it(
-    'every collection accessor returns a usable Collection',
-    async () => {
-      for (const name of COLLECTIONS) {
-        const col = await getCollection(name);
-        expect(col.collectionName).toBe(name);
-      }
-    },
-    20_000,
-  );
+  it('every collection accessor returns a usable Collection', async () => {
+    for (const name of COLLECTIONS) {
+      const col = await getCollection(name);
+      expect(col.collectionName).toBe(name);
+    }
+  }, 20_000);
 
   it('two getMongoClient() calls return the same instance', async () => {
     const p1 = getMongoClient();

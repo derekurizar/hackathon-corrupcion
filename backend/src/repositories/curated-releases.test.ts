@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  shouldReplace,
-  collapseByOcidKeepLatest,
-} from './curated-releases.js';
+import { shouldReplace, collapseByOcidKeepLatest } from './curated-releases.js';
 import type { CuratedRelease } from '../schema/index.js';
 
 /** Minimal CuratedRelease stub — only `ocid`/`date` matter for dedup. */
@@ -17,19 +14,19 @@ describe('shouldReplace', () => {
     expect(shouldReplace({ date: '2026-01-01T00:00:00Z' }, undefined)).toBe(true);
   });
   it('returns true when incoming is newer', () => {
-    expect(
-      shouldReplace({ date: '2026-02-01T00:00:00Z' }, { date: '2026-01-01T00:00:00Z' }),
-    ).toBe(true);
+    expect(shouldReplace({ date: '2026-02-01T00:00:00Z' }, { date: '2026-01-01T00:00:00Z' })).toBe(
+      true,
+    );
   });
   it('returns true when dates are equal (keep latest = idempotent)', () => {
-    expect(
-      shouldReplace({ date: '2026-01-01T00:00:00Z' }, { date: '2026-01-01T00:00:00Z' }),
-    ).toBe(true);
+    expect(shouldReplace({ date: '2026-01-01T00:00:00Z' }, { date: '2026-01-01T00:00:00Z' })).toBe(
+      true,
+    );
   });
   it('returns false when incoming is older', () => {
-    expect(
-      shouldReplace({ date: '2025-12-01T00:00:00Z' }, { date: '2026-01-01T00:00:00Z' }),
-    ).toBe(false);
+    expect(shouldReplace({ date: '2025-12-01T00:00:00Z' }, { date: '2026-01-01T00:00:00Z' })).toBe(
+      false,
+    );
   });
 });
 
@@ -44,9 +41,7 @@ describe('collapseByOcidKeepLatest', () => {
       rel('ocid-b', '2026-02-01T00:00:00Z'),
     ]);
     expect(out).toHaveLength(2);
-    expect(new Set(out.map((d) => d.ocid))).toEqual(
-      new Set(['ocid-a', 'ocid-b']),
-    );
+    expect(new Set(out.map((d) => d.ocid))).toEqual(new Set(['ocid-a', 'ocid-b']));
   });
 
   it('collapses same-ocid dups keeping the latest date', () => {

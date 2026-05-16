@@ -27,11 +27,7 @@ registerRule({
         ocid: release.ocid,
         family: 'F4',
         severity: 'medium',
-        confidence: confidence(
-          config.RULE_21_MAX_DAYS - elapsed,
-          0,
-          config.RULE_21_SCALE,
-        ),
+        confidence: confidence(config.RULE_21_MAX_DAYS - elapsed, 0, config.RULE_21_SCALE),
         title: 'fast_award_after_publication.title',
         explanation: 'fast_award_after_publication.explanation',
         story_angle:
@@ -53,9 +49,7 @@ registerRule({
           },
         ],
         primaryEntityId: buyerId,
-        secondaryEntityIds: award.supplierIds.map((s) =>
-          ctx.entities.canonicalOf(s),
-        ),
+        secondaryEntityIds: award.supplierIds.map((s) => ctx.entities.canonicalOf(s)),
       }),
     ];
   },

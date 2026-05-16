@@ -37,11 +37,7 @@ registerRule({
             ocid: release.ocid,
             family: 'F3',
             severity: 'medium',
-            confidence: confidence(
-              mult,
-              config.RULE_16_HIST_MULT,
-              config.RULE_16_SCALE,
-            ),
+            confidence: confidence(mult, config.RULE_16_HIST_MULT, config.RULE_16_SCALE),
             title: 'above_supplier_history_avg.title',
             explanation: 'above_supplier_history_avg.explanation',
             story_angle:

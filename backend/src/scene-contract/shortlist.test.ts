@@ -33,9 +33,7 @@ describe('ruleFamily', () => {
 describe('RULE_CATALOG', () => {
   it('has 23 unique ordinals 1..23 and unique ids', () => {
     expect(RULE_CATALOG).toHaveLength(23);
-    expect(RULE_CATALOG.map((r) => r.ordinal)).toEqual(
-      Array.from({ length: 23 }, (_, i) => i + 1),
-    );
+    expect(RULE_CATALOG.map((r) => r.ordinal)).toEqual(Array.from({ length: 23 }, (_, i) => i + 1));
     expect(new Set(RULE_CATALOG.map((r) => r.id)).size).toBe(23);
   });
 });
@@ -95,38 +93,27 @@ describe('shortlist — sigueElDinero', () => {
     expect(shortlist('sigueElDinero', [])).toEqual(['MoneyFlowStreams']);
   });
   it('adds PriceBars if rule 13 or 14 fired', () => {
-    expect(shortlist('sigueElDinero', [13])).toEqual([
-      'MoneyFlowStreams',
-      'PriceBars',
-    ]);
-    expect(shortlist('sigueElDinero', [14])).toEqual([
-      'MoneyFlowStreams',
-      'PriceBars',
-    ]);
+    expect(shortlist('sigueElDinero', [13])).toEqual(['MoneyFlowStreams', 'PriceBars']);
+    expect(shortlist('sigueElDinero', [14])).toEqual(['MoneyFlowStreams', 'PriceBars']);
   });
   it('adds ThresholdLadder if rule 15 or 18 fired', () => {
-    expect(shortlist('sigueElDinero', [15])).toEqual([
-      'MoneyFlowStreams',
-      'ThresholdLadder',
-    ]);
-    expect(shortlist('sigueElDinero', [18])).toEqual([
-      'MoneyFlowStreams',
-      'ThresholdLadder',
-    ]);
+    expect(shortlist('sigueElDinero', [15])).toEqual(['MoneyFlowStreams', 'ThresholdLadder']);
+    expect(shortlist('sigueElDinero', [18])).toEqual(['MoneyFlowStreams', 'ThresholdLadder']);
   });
   it('adds RegionMap only when hasRegion (stretch)', () => {
     expect(shortlist('sigueElDinero', [], { hasRegion: true })).toEqual([
       'MoneyFlowStreams',
       'RegionMap',
     ]);
-    expect(shortlist('sigueElDinero', [], { hasRegion: false })).toEqual([
-      'MoneyFlowStreams',
-    ]);
+    expect(shortlist('sigueElDinero', [], { hasRegion: false })).toEqual(['MoneyFlowStreams']);
   });
   it('combines all triggers in the documented order', () => {
-    expect(
-      shortlist('sigueElDinero', [13, 18], { hasRegion: true }),
-    ).toEqual(['MoneyFlowStreams', 'PriceBars', 'ThresholdLadder', 'RegionMap']);
+    expect(shortlist('sigueElDinero', [13, 18], { hasRegion: true })).toEqual([
+      'MoneyFlowStreams',
+      'PriceBars',
+      'ThresholdLadder',
+      'RegionMap',
+    ]);
   });
 });
 
@@ -135,16 +122,10 @@ describe('shortlist — lasConexiones', () => {
     expect(shortlist('lasConexiones', [])).toEqual(['ConcentrationFan']);
   });
   it('adds SplittingCluster if rule 18 fired', () => {
-    expect(shortlist('lasConexiones', [18])).toEqual([
-      'ConcentrationFan',
-      'SplittingCluster',
-    ]);
+    expect(shortlist('lasConexiones', [18])).toEqual(['ConcentrationFan', 'SplittingCluster']);
   });
   it('adds RepeatBidders if rule 10 fired', () => {
-    expect(shortlist('lasConexiones', [10])).toEqual([
-      'ConcentrationFan',
-      'RepeatBidders',
-    ]);
+    expect(shortlist('lasConexiones', [10])).toEqual(['ConcentrationFan', 'RepeatBidders']);
   });
   it('adds both in documented order', () => {
     expect(shortlist('lasConexiones', [10, 18])).toEqual([
@@ -172,14 +153,8 @@ describe('shortlist — cronologia', () => {
     expect(shortlist('cronologia', [])).toEqual(['AwardTimeline']);
   });
   it('adds GapSpotlight if rule 20 or 21 fired', () => {
-    expect(shortlist('cronologia', [20])).toEqual([
-      'AwardTimeline',
-      'GapSpotlight',
-    ]);
-    expect(shortlist('cronologia', [21])).toEqual([
-      'AwardTimeline',
-      'GapSpotlight',
-    ]);
+    expect(shortlist('cronologia', [20])).toEqual(['AwardTimeline', 'GapSpotlight']);
+    expect(shortlist('cronologia', [21])).toEqual(['AwardTimeline', 'GapSpotlight']);
   });
 });
 

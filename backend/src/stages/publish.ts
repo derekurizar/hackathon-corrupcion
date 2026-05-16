@@ -1,12 +1,10 @@
-import {
-  publishInvestigations,
-  type PublishResult,
-} from '../generation/publish.js';
+import { publishInvestigations, type PublishResult } from '../generation/publish.js';
+import { moduleLogger } from '../obs/logger.js';
 import { getAllEntities } from '../repositories/entities.js';
 import type { Entity } from '../schema/index.js';
 import type { CaseBundle } from '../generation/rank.js';
 
-const log = (m: string): void => console.error(`[publish] ${m}`);
+const log = moduleLogger('publish');
 
 export interface PublishStageArgs {
   runId: string;
@@ -19,14 +17,10 @@ export interface PublishStageArgs {
  * publish-time anonymization), then delegates to `publishInvestigations`
  * (evidenceHash-guarded versioned upsert + Edition + dashboardStats recompute).
  */
-export async function publish(
-  args: PublishStageArgs,
-): Promise<PublishResult> {
+export async function publish(args: PublishStageArgs): Promise<PublishResult> {
   log(`start runId=${args.runId} scope=${args.scope} bundles=${args.bundles.length}`);
   const entities = await getAllEntities();
-  const entityMap = new Map<string, Entity>(
-    entities.map((e) => [e._id, e]),
-  );
+  const entityMap = new Map<string, Entity>(entities.map((e) => [e._id, e]));
   const result = await publishInvestigations({
     runId: args.runId,
     scope: args.scope,

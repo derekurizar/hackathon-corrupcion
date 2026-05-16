@@ -3,12 +3,7 @@ import { deriveFromEvidence, FIXED_CAVEAT } from './derive.js';
 import { validateScenePlan } from './validator.js';
 import { defaultScene } from './shortlist.js';
 import { SCENES } from './scenes/index.js';
-import type {
-  Chapter,
-  SceneSignal,
-  SceneEvidenceItem,
-  SceneInvestigation,
-} from './types.js';
+import type { Chapter, SceneSignal, SceneEvidenceItem, SceneInvestigation } from './types.js';
 
 const investigation: SceneInvestigation = {
   buyer: { id: 'GT-NIT:4132726', name: 'Ministerio de Salud' },

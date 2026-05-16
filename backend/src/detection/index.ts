@@ -10,10 +10,4 @@ export { reviewPriority } from './review-priority.js';
 export { awardCategory, resolveCategoryLevel } from './category.js';
 export { rawToCanonical } from './entity-id.js';
 export { isDirectMethod, isNoncompetitiveMethod } from './method.js';
-export type {
-  Rule,
-  RuleContext,
-  ContractSignal,
-  EntityIndex,
-  RollupData,
-} from './types.js';
+export type { Rule, RuleContext, ContractSignal, EntityIndex, RollupData } from './types.js';

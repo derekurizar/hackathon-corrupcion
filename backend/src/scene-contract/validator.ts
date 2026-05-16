@@ -81,10 +81,7 @@ function visitLeaves(
  *   - sibling `ref`         (e.g. `heroStat.value` → `heroStat.ref`)
  *   - `<base>Ref` dropping a trailing `Value` (e.g. `totalValue` → `totalRef`)
  */
-function companionRef(
-  parent: Record<string, unknown>,
-  key: string,
-): unknown {
+function companionRef(parent: Record<string, unknown>, key: string): unknown {
   const candidates = [`${key}Ref`, 'ref'];
   if (key.endsWith('Value')) {
     candidates.push(`${key.slice(0, -'Value'.length)}Ref`);
@@ -103,18 +100,9 @@ function companionRef(
  *   - `arr[].f`  per-element field — copy field for each aligned element
  * Missing authoritative nodes are skipped (param left as-is).
  */
-function overwriteBound(
-  target: unknown,
-  authoritative: unknown,
-  segs: Seg[],
-): void {
+function overwriteBound(target: unknown, authoritative: unknown, segs: Seg[]): void {
   const recur = (t: unknown, a: unknown, i: number): void => {
-    if (
-      t == null ||
-      a == null ||
-      typeof t !== 'object' ||
-      typeof a !== 'object'
-    ) {
+    if (t == null || a == null || typeof t !== 'object' || typeof a !== 'object') {
       return;
     }
     const seg = segs[i]!;
@@ -171,11 +159,7 @@ function collectIds(params: Record<string, unknown>): Set<string> {
     }
     if (typeof node === 'object') {
       for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
-        if (
-          typeof v === 'string' &&
-          k.endsWith('Id') &&
-          !isTargetKey(k)
-        ) {
+        if (typeof v === 'string' && k.endsWith('Id') && !isTargetKey(k)) {
           ids.add(v);
         }
         walk(v);
@@ -213,14 +197,11 @@ export function validateScenePlan(
   evidence: SceneEvidenceItem[],
   investigation: SceneInvestigation,
 ): ScenePlanEntry {
-  const fb = (): ScenePlanEntry =>
-    fallback(chapter, signals, evidence, investigation);
+  const fb = (): ScenePlanEntry => fallback(chapter, signals, evidence, investigation);
 
   // Rule 1 — sceneId must be in the chapter shortlist.
   const allowed = shortlist(chapter, ruleOrdinalsFromSignals(signals), {
-    hasBenchmark: signals.some((s) =>
-      s.evidence.some((e) => e.benchmark !== undefined),
-    ),
+    hasBenchmark: signals.some((s) => s.evidence.some((e) => e.benchmark !== undefined)),
   });
   if (!allowed.includes(entry.sceneId)) return fb();
 
@@ -235,12 +216,7 @@ export function validateScenePlan(
   // well-defined only for the default scene; variant bound params pass through
   // (Phase-0 deviation, see return summary / known gaps).
   if (entry.sceneId === defaultScene(chapter)) {
-    const authoritative = deriveFromEvidence(
-      chapter,
-      signals,
-      evidence,
-      investigation,
-    );
+    const authoritative = deriveFromEvidence(chapter, signals, evidence, investigation);
     for (const [path, kind] of Object.entries(descriptor.kinds)) {
       if (kind !== 'bound') continue;
       overwriteBound(params, authoritative, parsePath(path));
@@ -319,9 +295,7 @@ export function validateScenePlan(
     const segs = parsePath(path);
     const leafKey = segs[segs.length - 1]!.key;
     const isTarget =
-      leafKey.endsWith('Id') ||
-      leafKey === 'emphasisSupplierId' ||
-      leafKey === 'emphasisTarget';
+      leafKey.endsWith('Id') || leafKey === 'emphasisSupplierId' || leafKey === 'emphasisTarget';
     visitLeaves(params, segs, (leafValue) => {
       if (!presOk) return;
       if (isTarget && typeof leafValue === 'string') {

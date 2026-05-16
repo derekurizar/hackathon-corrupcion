@@ -1,4 +1,5 @@
 import { validateScenePlan } from '../scene-contract/validator.js';
+import { moduleLogger } from '../obs/logger.js';
 import type {
   Chapter,
   SceneSignal,
@@ -7,7 +8,7 @@ import type {
 } from '../scene-contract/types.js';
 import type { ScenePlanEntry } from '../schema/index.js';
 
-const log = (m: string): void => console.error(`[scene] ${m}`);
+const log = moduleLogger('scene');
 
 /**
  * The fixed 7-chapter spine (idea/05). Every Investigation MUST carry an entry
@@ -34,10 +35,7 @@ const CHAPTERS: readonly Chapter[] = [
  */
 export function resolveScenePlan(
   _firedRuleIds: string[],
-  llmScenePlan: Record<
-    string,
-    { sceneId: string; params: Record<string, unknown> }
-  >,
+  llmScenePlan: Record<string, { sceneId: string; params: Record<string, unknown> }>,
   sceneSignals: SceneSignal[],
   sceneEvidence: SceneEvidenceItem[],
   sceneInvestigation: SceneInvestigation,

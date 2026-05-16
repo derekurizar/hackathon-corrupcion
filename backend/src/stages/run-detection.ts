@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { moduleLogger } from '../obs/logger.js';
 import { loadConfig } from '../config/env.js';
 import { caseKey } from '../identity/index.js';
 import { SignalSchema, type Signal } from '../schema/signals.js';
@@ -38,10 +39,9 @@ export interface RunDetectionResult {
   runId?: string;
 }
 
-const log = (m: string): void => console.error(`[detection] ${m}`);
+const log = moduleLogger('detection');
 
-const sha256 = (s: string): string =>
-  createHash('sha256').update(s).digest('hex');
+const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 /**
  * Detection stage (replaces the Area 01 throwing stub; same exported symbol
@@ -51,9 +51,7 @@ const sha256 = (s: string): string =>
  * `signal_id` is deterministic so a re-run (delete-by-scope + reinsert) over
  * an unchanged corpus yields identical counts. NEVER `.toArray()`s the cursor.
  */
-export async function runDetection(
-  args: RunDetectionArgs = {},
-): Promise<RunDetectionResult> {
+export async function runDetection(args: RunDetectionArgs = {}): Promise<RunDetectionResult> {
   const cfg = loadConfig();
 
   if (!cfg.RUN_DETECTION && !args.dryRun) {
@@ -65,9 +63,7 @@ export async function runDetection(
   // benchmark doc by scanning — but the contract is one scope, so the caller
   // normally passes it. We require an explicit benchmark for the scope.
   let scope = args.scope ?? '';
-  let benchmarks: Benchmark | null = scope
-    ? await getBenchmarkByScope(scope)
-    : null;
+  let benchmarks: Benchmark | null = scope ? await getBenchmarkByScope(scope) : null;
   if (!benchmarks) {
     // Fall back: derive scope from the only benchmark in the collection.
     const { getCollection } = await import('../db/collections.js');

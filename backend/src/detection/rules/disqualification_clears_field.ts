@@ -33,11 +33,7 @@ registerRule({
         ocid: release.ocid,
         family: 'F1',
         severity: 'high',
-        confidence: confidence(
-          disqualified.length,
-          0,
-          release.bids.length,
-        ),
+        confidence: confidence(disqualified.length, 0, release.bids.length),
         title: 'disqualification_clears_field.title',
         explanation: 'disqualification_clears_field.explanation',
         story_angle:

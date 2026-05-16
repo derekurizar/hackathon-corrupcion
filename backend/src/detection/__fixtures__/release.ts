@@ -84,9 +84,6 @@ export function makeEntityIndex(opts: {
     canonicalOf: (rawId) => rawToCanonical(rawId),
     rollup: (id) => rollups[id],
     entityType: (id) => types[id] ?? 'unknown',
-    allCanonicalEntityIds: new Set([
-      ...Object.keys(rollups),
-      ...Object.keys(types),
-    ]),
+    allCanonicalEntityIds: new Set([...Object.keys(rollups), ...Object.keys(types)]),
   };
 }

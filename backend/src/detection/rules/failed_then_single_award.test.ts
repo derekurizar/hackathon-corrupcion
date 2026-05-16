@@ -56,9 +56,7 @@ describe('failed_then_single_award (rule 6, F1)', () => {
         },
       ],
     });
-    expect(
-      rule.run(makeCtx({ release: r, benchmarks: benchWithPrior })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: r, benchmarks: benchWithPrior }))).toHaveLength(0);
   });
 
   it('does NOT fire when the award has multiple suppliers', () => {
@@ -74,8 +72,6 @@ describe('failed_then_single_award (rule 6, F1)', () => {
         },
       ],
     });
-    expect(
-      rule.run(makeCtx({ release: r, benchmarks: benchWithPrior })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: r, benchmarks: benchWithPrior }))).toHaveLength(0);
   });
 });

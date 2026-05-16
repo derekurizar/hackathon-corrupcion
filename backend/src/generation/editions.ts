@@ -37,11 +37,7 @@ export function bundleTotalValue(bundle: CaseBundle): number {
  * run id/timestamp (NOT a calendar month). Lead = the top-ranked bundle;
  * highlights = the next three.
  */
-export function buildEdition(
-  runId: string,
-  publishedAt: string,
-  bundles: CaseBundle[],
-): Edition {
+export function buildEdition(runId: string, publishedAt: string, bundles: CaseBundle[]): Edition {
   const byFamily: Record<Family, number> = { F1: 0, F2: 0, F3: 0, F4: 0 };
   let totalValueFlagged = 0;
   for (const b of bundles) {
@@ -88,12 +84,8 @@ export async function recomputeDashboardStats(): Promise<DashboardStats> {
     relCol.countDocuments({} as never),
     invCol.countDocuments({} as never),
     entCol.countDocuments({} as never),
-    invCol
-      .aggregate([{ $group: { _id: '$signalFamily', n: { $sum: 1 } } }])
-      .toArray(),
-    invCol
-      .aggregate([{ $group: { _id: '$reviewPriority', n: { $sum: 1 } } }])
-      .toArray(),
+    invCol.aggregate([{ $group: { _id: '$signalFamily', n: { $sum: 1 } } }]).toArray(),
+    invCol.aggregate([{ $group: { _id: '$reviewPriority', n: { $sum: 1 } } }]).toArray(),
     relCol
       .aggregate([
         {

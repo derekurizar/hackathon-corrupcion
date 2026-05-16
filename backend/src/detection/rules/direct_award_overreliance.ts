@@ -36,8 +36,7 @@ registerRule({
     const directValue = rollup.awardValue * directValueShare;
     if (directValue < config.RULE_3_MIN_DIRECT_VALUE) return [];
 
-    const severity =
-      directValueShare >= config.RULE_3_HIGH_THRESHOLD ? 'high' : 'medium';
+    const severity = directValueShare >= config.RULE_3_HIGH_THRESHOLD ? 'high' : 'medium';
 
     return [
       makeSignal({

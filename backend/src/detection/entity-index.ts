@@ -57,10 +57,7 @@ export function createEntityIndexBuilder(entities: Entity[]): {
     }
     return a;
   };
-  const noteDate = (
-    a: NonNullable<ReturnType<typeof acc.get>>,
-    d: string,
-  ): void => {
+  const noteDate = (a: NonNullable<ReturnType<typeof acc.get>>, d: string): void => {
     if (d === '') return;
     if (a.firstAwardDate === '' || d < a.firstAwardDate) a.firstAwardDate = d;
     if (a.lastAwardDate === '' || d > a.lastAwardDate) a.lastAwardDate = d;
@@ -100,16 +97,12 @@ export function createEntityIndexBuilder(entities: Entity[]): {
         categoryFamilies: [...a.categoryFamilies],
         firstAwardDate: a.firstAwardDate,
         lastAwardDate: a.lastAwardDate,
-        historyAvgValue:
-          a.awardCount > 0 ? a.awardValue / a.awardCount : 0,
+        historyAvgValue: a.awardCount > 0 ? a.awardValue / a.awardCount : 0,
         supplierValueMap: Object.fromEntries(a.supplierValue),
         supplierCountMap: Object.fromEntries(a.supplierCount),
       });
     }
-    const allCanonicalEntityIds = new Set<string>([
-      ...typeById.keys(),
-      ...rollups.keys(),
-    ]);
+    const allCanonicalEntityIds = new Set<string>([...typeById.keys(), ...rollups.keys()]);
     return {
       canonicalOf: (rawId: string): string => rawToCanonical(rawId),
       rollup: (id: string): RollupData | undefined => {

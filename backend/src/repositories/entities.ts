@@ -96,15 +96,9 @@ export async function bulkSetEntityRollups(
  * `build-benchmarks` resolves raw → canonical in-memory during its single
  * corpus pass and writes the correct rollup here, exactly once per entity.
  */
-export async function setEntityRollup(
-  entityId: string,
-  rollup: Entity['rollup'],
-): Promise<void> {
+export async function setEntityRollup(entityId: string, rollup: Entity['rollup']): Promise<void> {
   const col = await getCollection('entities');
-  await col.updateOne(
-    { _id: entityId } as never,
-    { $set: { rollup } } as never,
-  );
+  await col.updateOne({ _id: entityId } as never, { $set: { rollup } } as never);
 }
 
 /** All entity docs (Area 05 builds an in-memory `EntityIndex` from these). */
@@ -145,9 +139,7 @@ export async function recomputeRollup(entityId: string): Promise<void> {
           awardCount,
           awardValue,
           buyerIds: (result['buyerIds'] as string[]) ?? [],
-          categoryFamilies: ((result['categoryFamilies'] as unknown[]) ?? []).filter(
-            Boolean,
-          ),
+          categoryFamilies: ((result['categoryFamilies'] as unknown[]) ?? []).filter(Boolean),
           firstAwardDate: (result['firstAwardDate'] as string) ?? '',
           lastAwardDate: (result['lastAwardDate'] as string) ?? '',
           historyAvgValue,

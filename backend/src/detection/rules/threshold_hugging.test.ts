@@ -25,21 +25,15 @@ describe('threshold_hugging (rule 15, F3)', () => {
   });
 
   it('fires just below the Q900k Cotización band', () => {
-    const out = rule.run(
-      makeCtx({ release: makeRelease({ awards: award(880_000) }) }),
-    );
+    const out = rule.run(makeCtx({ release: makeRelease({ awards: award(880_000) }) }));
     expect(out).toHaveLength(1);
   });
 
   it('does NOT fire well below a band', () => {
-    expect(
-      rule.run(makeCtx({ release: makeRelease({ awards: award(50_000) }) })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease({ awards: award(50_000) }) }))).toHaveLength(0);
   });
 
   it('does NOT fire at or above the band ceiling', () => {
-    expect(
-      rule.run(makeCtx({ release: makeRelease({ awards: award(90_000) }) })),
-    ).toHaveLength(0);
+    expect(rule.run(makeCtx({ release: makeRelease({ awards: award(90_000) }) }))).toHaveLength(0);
   });
 });

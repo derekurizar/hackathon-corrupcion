@@ -27,9 +27,7 @@ const signals: SceneSignal[] = [
     ocid: 'ocds-abc-001',
     family: 'F1',
     severity: 'high',
-    evidence: [
-      { field: 'awards.value.amount', value: 650000, comparison: '3x median' },
-    ],
+    evidence: [{ field: 'awards.value.amount', value: 650000, comparison: '3x median' }],
   },
 ];
 
@@ -61,19 +59,11 @@ function validCoverEntry(): ScenePlanEntry {
 
 describe('validateScenePlan — full success', () => {
   it('returns source:"llm" for a valid default-scene entry with a resolving quant ref', () => {
-    const out = validateScenePlan(
-      'cover',
-      validCoverEntry(),
-      signals,
-      evidence,
-      investigation,
-    );
+    const out = validateScenePlan('cover', validCoverEntry(), signals, evidence, investigation);
     expect(out.source).toBe('llm');
     expect(out.sceneId).toBe('CoverHeadline');
     // bound params overwritten with authoritative server values
-    expect((out.params['heroStat'] as Record<string, unknown>)['unit']).toBe(
-      'GTQ',
-    );
+    expect((out.params['heroStat'] as Record<string, unknown>)['unit']).toBe('GTQ');
     expect(out.params['buyer']).toBe('Ministerio de Salud');
   });
 });
@@ -205,13 +195,7 @@ describe('validateScenePlan — rule 5 (ClosingStatement caveat mandatory)', () 
   });
 
   it('falls back when caveat is empty/whitespace', () => {
-    const out = validateScenePlan(
-      'cierre',
-      closingEntry('   '),
-      signals,
-      evidence,
-      investigation,
-    );
+    const out = validateScenePlan('cierre', closingEntry('   '), signals, evidence, investigation);
     expect(out.source).toBe('fallback');
     expect(out.sceneId).toBe('ClosingStatement');
     expect(typeof out.params['caveat']).toBe('string');

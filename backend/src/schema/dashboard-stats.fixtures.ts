@@ -20,7 +20,5 @@ export const validDashboardStats: DashboardStats = {
     { month: '2025-12', flagged: 8, value: 1200000 },
     { month: '2026-01', flagged: 11, value: 1800000 },
   ],
-  topBuyersByFlaggedValue: [
-    { id: 'GT-NIT:4132726', name: 'Ministerio de Salud', value: 3200000 },
-  ],
+  topBuyersByFlaggedValue: [{ id: 'GT-NIT:4132726', name: 'Ministerio de Salud', value: 3200000 }],
 };

@@ -67,10 +67,7 @@ describe('awardCategory', () => {
 
 describe('resolveCategoryLevel fallback ladder', () => {
   const cfg = defaultRuleConfig; // CATEGORY_MIN_SAMPLE = 8
-  const cp = (
-    count: number,
-    level: string,
-  ): Benchmark['categoryPrice'][string] => ({
+  const cp = (count: number, level: string): Benchmark['categoryPrice'][string] => ({
     median: 100,
     p25: 50,
     p75: 150,

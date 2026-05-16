@@ -14,9 +14,7 @@ describe('reviewPriority (idea/03 threshold table)', () => {
   });
 
   it('>= 3 medium → high', () => {
-    expect(reviewPriority([sev('medium'), sev('medium'), sev('medium')])).toBe(
-      'high',
-    );
+    expect(reviewPriority([sev('medium'), sev('medium'), sev('medium')])).toBe('high');
   });
 
   it('1-2 medium (and no high) → medium', () => {

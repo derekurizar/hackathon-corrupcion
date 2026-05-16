@@ -29,9 +29,7 @@ describe('bundleTotalValue', () => {
         }),
       ),
     ).toBe(500);
-    expect(
-      bundleTotalValue(bundle({ evidence: [{ field: 'count', value: 3 }] })),
-    ).toBe(0);
+    expect(bundleTotalValue(bundle({ evidence: [{ field: 'count', value: 3 }] }))).toBe(0);
   });
 });
 

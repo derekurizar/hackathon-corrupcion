@@ -27,22 +27,12 @@ export async function startRun(opts: {
   return runId;
 }
 
-export async function markStage(
-  runId: string,
-  stage: string,
-  status: string,
-): Promise<void> {
+export async function markStage(runId: string, stage: string, status: string): Promise<void> {
   const col = await getCollection('pipelineRuns');
-  await col.updateOne(
-    { _id: runId } as never,
-    { $set: { [`stages.${stage}`]: status } } as never,
-  );
+  await col.updateOne({ _id: runId } as never, { $set: { [`stages.${stage}`]: status } } as never);
 }
 
-export async function setCounts(
-  runId: string,
-  counts: PipelineRun['counts'],
-): Promise<void> {
+export async function setCounts(runId: string, counts: PipelineRun['counts']): Promise<void> {
   const col = await getCollection('pipelineRuns');
   await col.updateOne({ _id: runId } as never, { $set: { counts } } as never);
 }

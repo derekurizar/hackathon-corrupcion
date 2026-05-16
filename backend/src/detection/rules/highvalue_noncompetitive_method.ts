@@ -20,9 +20,7 @@ registerRule({
     }
 
     const buyerId = ctx.entities.canonicalOf(release.buyer.id);
-    const suppliers = release.awards[0]!.supplierIds.map((s) =>
-      ctx.entities.canonicalOf(s),
-    );
+    const suppliers = release.awards[0]!.supplierIds.map((s) => ctx.entities.canonicalOf(s));
 
     return [
       makeSignal({

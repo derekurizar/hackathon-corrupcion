@@ -1,4 +1,5 @@
 import { statSync } from 'node:fs';
+import { moduleLogger } from '../obs/logger.js';
 import { loadConfig } from '../config/env.js';
 import { downloadMonth } from '../ingest/fetch.js';
 import { streamRecords } from '../ingest/stream.js';
@@ -16,7 +17,7 @@ import {
   finishRun,
 } from '../repositories/pipeline-runs.js';
 
-const log = (msg: string): void => console.error(`[ingest] ${msg}`);
+const log = moduleLogger('ingest');
 
 export interface IngestMonthArgs {
   year: number;
@@ -53,9 +54,7 @@ export interface IngestMonthResult {
  * `dryRun`: streams + normalizes + counts (proves bounded-memory parse) but
  * performs NO DB writes (no run doc, no upserts).
  */
-export async function ingestMonth(
-  args: IngestMonthArgs,
-): Promise<IngestMonthResult> {
+export async function ingestMonth(args: IngestMonthArgs): Promise<IngestMonthResult> {
   const { year, month, dryRun = false } = args;
   const config = loadConfig();
 

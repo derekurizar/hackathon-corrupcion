@@ -22,9 +22,7 @@ registerRule({
     const activeSuppliers = active.flatMap((a) =>
       a.supplierIds.map((s) => ctx.entities.canonicalOf(s)),
     );
-    const sameSupplierReaward = activeSuppliers.some((s) =>
-      cancelledSuppliers.has(s),
-    );
+    const sameSupplierReaward = activeSuppliers.some((s) => cancelledSuppliers.has(s));
 
     return [
       makeSignal({
@@ -37,8 +35,7 @@ registerRule({
         confidence: Math.min(1, 1 / config.RULE_23_SCALE),
         title: 'cancelled_then_reaward.title',
         explanation: 'cancelled_then_reaward.explanation',
-        story_angle:
-          'An award was cancelled and then re-issued within the same procurement.',
+        story_angle: 'An award was cancelled and then re-issued within the same procurement.',
         evidence: [
           {
             field: 'awards[].status',

@@ -19,14 +19,7 @@
  * exclude test files, e.g.
  *   (cd copy && npx tsc --noEmit $(find . -name '*.ts' ! -name '*.test.ts'))
  */
-import {
-  rmSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-  statSync,
-} from 'node:fs';
+import { rmSync, mkdirSync, readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, relative, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -36,9 +29,7 @@ const src = join(root, 'backend/src/scene-contract');
 const dest = join(root, 'frontend/src/_scene-contract');
 
 const isExcluded = (rel) =>
-  rel.includes('__fixtures__') ||
-  rel.endsWith('.test.ts') ||
-  rel.endsWith('.compat.test.ts');
+  rel.includes('__fixtures__') || rel.endsWith('.test.ts') || rel.endsWith('.compat.test.ts');
 
 /** Recursively list copied files (relative paths), excluding tests/fixtures. */
 function listFiles(dir, base = dir) {
@@ -77,9 +68,7 @@ function main() {
   const digest = hash.digest('hex');
   writeFileSync(join(dest, 'SCENE_CONTRACT_HASH'), digest + '\n');
 
-  console.log(
-    `sync:scene-contract — copied ${files.length} file(s) → ${relative(root, dest)}`,
-  );
+  console.log(`sync:scene-contract — copied ${files.length} file(s) → ${relative(root, dest)}`);
   console.log(`SCENE_CONTRACT_HASH = ${digest}`);
 }
 

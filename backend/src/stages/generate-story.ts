@@ -1,11 +1,12 @@
 import { rankAndClusterCases, type CaseBundle } from '../generation/rank.js';
+import { moduleLogger } from '../obs/logger.js';
 import { getAllEntities } from '../repositories/entities.js';
 import { createClaudeClient } from '../generation/claude.js';
 import { generateStoryGuarded } from '../generation/guardrails.js';
 import { anonymizeSupplier } from '../generation/anonymize.js';
 import type { Entity } from '../schema/index.js';
 
-const log = (m: string): void => console.error(`[story] ${m}`);
+const log = moduleLogger('story');
 
 export interface GenerateStoryArgs {
   scope?: string;
@@ -26,12 +27,9 @@ export interface GenerateStoryResult {
  * stage (`publishInvestigations` re-runs generation behind the evidenceHash
  * guard so unchanged cases cost zero LLM calls).
  */
-export async function generateStory(
-  args: GenerateStoryArgs = {},
-): Promise<GenerateStoryResult> {
+export async function generateStory(args: GenerateStoryArgs = {}): Promise<GenerateStoryResult> {
   const scope = args.scope ?? '';
-  const bundles =
-    args.bundles ?? (await rankAndClusterCases({ scope }));
+  const bundles = args.bundles ?? (await rankAndClusterCases({ scope }));
 
   if (bundles.length === 0) {
     log('no bundles');
@@ -39,9 +37,7 @@ export async function generateStory(
   }
 
   const entities = await getAllEntities();
-  const entityMap = new Map<string, Entity>(
-    entities.map((e) => [e._id, e]),
-  );
+  const entityMap = new Map<string, Entity>(entities.map((e) => [e._id, e]));
 
   const client = createClaudeClient();
   let stories = 0;
@@ -49,14 +45,13 @@ export async function generateStory(
 
   for (const bundle of bundles) {
     const supplierId = bundle.entities.supplierIds[0];
-    const supplierEntity: Pick<Entity, '_id' | 'name' | 'entityType'> =
-      (supplierId !== undefined
-        ? entityMap.get(supplierId)
-        : undefined) ?? {
-        _id: supplierId ?? `${bundle.caseKey}:supplier`,
-        name: '',
-        entityType: 'unknown',
-      };
+    const supplierEntity: Pick<Entity, '_id' | 'name' | 'entityType'> = (supplierId !== undefined
+      ? entityMap.get(supplierId)
+      : undefined) ?? {
+      _id: supplierId ?? `${bundle.caseKey}:supplier`,
+      name: '',
+      entityType: 'unknown',
+    };
     const anon = anonymizeSupplier(supplierEntity);
     const { usedFallback } = await generateStoryGuarded(
       client,

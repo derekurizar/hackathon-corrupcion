@@ -1,6 +1,7 @@
 import { rankAndClusterCases, type CaseBundle } from '../generation/rank.js';
+import { moduleLogger } from '../obs/logger.js';
 
-const log = (m: string): void => console.error(`[rank] ${m}`);
+const log = moduleLogger('rank');
 
 export interface RankAndClusterArgs {
   /** Scope label (`scope:YYYY-MM..YYYY-MM`). Derived from the benchmark
@@ -31,9 +32,7 @@ async function resolveScope(scope?: string): Promise<string> {
  * RankAndCluster stage (Step-Functions task). Thin wrapper over
  * `rankAndClusterCases` — deterministic top-N bundles for the scope.
  */
-export async function rankAndCluster(
-  args: RankAndClusterArgs = {},
-): Promise<RankAndClusterResult> {
+export async function rankAndCluster(args: RankAndClusterArgs = {}): Promise<RankAndClusterResult> {
   const scope = await resolveScope(args.scope);
   log(`start scope=${scope}`);
   const bundles = await rankAndClusterCases({ scope });

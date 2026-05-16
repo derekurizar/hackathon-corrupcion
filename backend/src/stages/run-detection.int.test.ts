@@ -83,8 +83,6 @@ describe.skipIf(!hasAtlas)('runDetection (Atlas)', () => {
     const sig2 = await getSignalsByOcid(OCID);
     expect(sig2.length).toBe(sig1.length);
     expect(second.signals).toBe(first.signals);
-    expect(new Set(sig2.map((s) => s._id))).toEqual(
-      new Set(sig1.map((s) => s._id)),
-    );
+    expect(new Set(sig2.map((s) => s._id))).toEqual(new Set(sig1.map((s) => s._id)));
   });
 });

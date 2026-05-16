@@ -2,11 +2,7 @@ import { describe, it, expect } from 'vitest';
 import './single_bidder.js';
 import { RULES } from '../registry.js';
 import { defaultRuleConfig } from '../config.js';
-import {
-  makeRelease,
-  makeBenchmark,
-  makeEntityIndex,
-} from '../__fixtures__/release.js';
+import { makeRelease, makeBenchmark, makeEntityIndex } from '../__fixtures__/release.js';
 import type { RuleContext } from '../types.js';
 
 const rule = RULES.find((r) => r.id === 'single_bidder')!;
@@ -37,9 +33,7 @@ describe('single_bidder (rule 1, F1)', () => {
     expect(out[0]!.severity).toBe('medium');
     expect(out[0]!.family).toBe('F1');
     expect(out[0]!.primaryEntityId).toBe('GT-NIT:4132726');
-    expect(out[0]!.evidence.map((e) => e.field)).toContain(
-      'tender.numberOfTenderers',
-    );
+    expect(out[0]!.evidence.map((e) => e.field)).toContain('tender.numberOfTenderers');
   });
 
   it('fires high when value >= 900k', () => {

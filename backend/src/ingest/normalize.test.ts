@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { toCuratedRelease } from './normalize.js';
 import { CuratedReleaseSchema } from '../schema/index.js';
-import {
-  compiledReleaseFixture,
-  noPartiesRecordFixture,
-} from './__fixtures__/compiled-release.js';
+import { compiledReleaseFixture, noPartiesRecordFixture } from './__fixtures__/compiled-release.js';
 
 describe('toCuratedRelease', () => {
   const ctx = { year: 2026, month: 4 };
@@ -32,9 +29,7 @@ describe('toCuratedRelease', () => {
       ['purchaseRequest', 'tenderNotice'].sort(),
     );
     // earliest datePublished across the 2 docs
-    expect(curated.tender.documentsSummary.firstDatePublished).toBe(
-      '2026-04-01T18:24:01-06:00',
-    );
+    expect(curated.tender.documentsSummary.firstDatePublished).toBe('2026-04-01T18:24:01-06:00');
   });
 
   it('reconstructs bids and bidCounts (rules 5/10/17 input)', () => {
@@ -86,9 +81,7 @@ describe('toCuratedRelease', () => {
 
   it('maps buyer.id to the canonical id when the buyer party is present', () => {
     expect(curated.buyer.id).toBe('GT-NIT:4132726');
-    expect(curated.buyer.name).toBe(
-      'MUNICIPALIDAD DE SAN PEDRO CARCHA, ALTA VERAPAZ',
-    );
+    expect(curated.buyer.name).toBe('MUNICIPALIDAD DE SAN PEDRO CARCHA, ALTA VERAPAZ');
   });
 
   it('carries year/month from ctx', () => {

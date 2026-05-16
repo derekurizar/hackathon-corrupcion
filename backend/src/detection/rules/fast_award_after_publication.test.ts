@@ -25,10 +25,7 @@ describe('fast_award_after_publication (rule 21, F4)', () => {
   it('fires when award < 2d after publication and value >= 90k', () => {
     const out = rule.run(
       makeCtx({
-        release: release(
-          '2026-04-01T08:00:00-06:00',
-          '2026-04-02T06:00:00-06:00',
-        ),
+        release: release('2026-04-01T08:00:00-06:00', '2026-04-02T06:00:00-06:00'),
       }),
     );
     expect(out).toHaveLength(1);
@@ -39,10 +36,7 @@ describe('fast_award_after_publication (rule 21, F4)', () => {
     expect(
       rule.run(
         makeCtx({
-          release: release(
-            '2026-04-01T08:00:00-06:00',
-            '2026-04-05T08:00:00-06:00',
-          ),
+          release: release('2026-04-01T08:00:00-06:00', '2026-04-05T08:00:00-06:00'),
         }),
       ),
     ).toHaveLength(0);
@@ -52,11 +46,7 @@ describe('fast_award_after_publication (rule 21, F4)', () => {
     expect(
       rule.run(
         makeCtx({
-          release: release(
-            '2026-04-01T08:00:00-06:00',
-            '2026-04-02T06:00:00-06:00',
-            10_000,
-          ),
+          release: release('2026-04-01T08:00:00-06:00', '2026-04-02T06:00:00-06:00', 10_000),
         }),
       ),
     ).toHaveLength(0);

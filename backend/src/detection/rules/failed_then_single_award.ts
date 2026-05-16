@@ -60,9 +60,7 @@ registerRule({
           },
         ],
         primaryEntityId: buyerId,
-        secondaryEntityIds: award.supplierIds.map((s) =>
-          ctx.entities.canonicalOf(s),
-        ),
+        secondaryEntityIds: award.supplierIds.map((s) => ctx.entities.canonicalOf(s)),
       }),
     ];
   },

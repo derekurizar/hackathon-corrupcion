@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import './individual_large_contract.js';
 import { ruleById, makeCtx } from '../__fixtures__/ctx.js';
-import {
-  makeRelease,
-  makeBenchmark,
-  makeEntityIndex,
-} from '../__fixtures__/release.js';
+import { makeRelease, makeBenchmark, makeEntityIndex } from '../__fixtures__/release.js';
 
 const rule = ruleById('individual_large_contract');
 const SUP = 'GT-NIT:7894880';

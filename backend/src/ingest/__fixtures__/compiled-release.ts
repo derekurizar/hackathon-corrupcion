@@ -102,18 +102,14 @@ export const compiledReleaseFixture: GuatecomprasRecord = {
           date: '2026-04-04T10:41:49-06:00',
           status: 'valid',
           value: { amount: 92000.5, currency: 'GTQ' },
-          tenderers: [
-            { id: 'GT-NIT-7894880', name: 'CONSTRUCTORA EJEMPLO, S.A.' },
-          ],
+          tenderers: [{ id: 'GT-NIT-7894880', name: 'CONSTRUCTORA EJEMPLO, S.A.' }],
           id: 'B3C8D0DE45A74B75F6B962BC43837059',
         },
         {
           date: '2026-04-04T11:05:12-06:00',
           status: 'disqualified',
           value: { amount: 88000.0, currency: 'GTQ' },
-          tenderers: [
-            { id: 'GT-NIT-15856801', name: 'DE LEON,MALDONADO,,CESAR,AUGUSTO' },
-          ],
+          tenderers: [{ id: 'GT-NIT-15856801', name: 'DE LEON,MALDONADO,,CESAR,AUGUSTO' }],
           id: '95AB9BED0CE9E7282C405DBE5AFAD474',
         },
       ],
@@ -161,8 +157,7 @@ export const compiledReleaseFixture: GuatecomprasRecord = {
         },
       ],
       procurementMethod: 'open',
-      procurementMethodDetails:
-        'Arrendamiento o Adquisición de Bienes Inmuebles (Art.43 inciso e)',
+      procurementMethodDetails: 'Arrendamiento o Adquisición de Bienes Inmuebles (Art.43 inciso e)',
       mainProcurementCategory: 'services',
       submissionMethod: ['electronicSubmission'],
       tenderPeriod: {
@@ -205,9 +200,7 @@ export const compiledReleaseFixture: GuatecomprasRecord = {
         statusDetails: 'Habilitado',
         date: '2026-04-05T12:09:14-06:00',
         value: { amount: 92000.5, currency: 'GTQ' },
-        suppliers: [
-          { id: 'GT-NIT-7894880', name: 'CONSTRUCTORA EJEMPLO, S.A.' },
-        ],
+        suppliers: [{ id: 'GT-NIT-7894880', name: 'CONSTRUCTORA EJEMPLO, S.A.' }],
         id: 'GT-ADJ-30319447-7894880',
       },
     ],

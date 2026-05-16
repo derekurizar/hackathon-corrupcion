@@ -44,6 +44,7 @@ You are **senior** — that word changes how you work, not just your title. A ju
 - Hands back with `build`/`lint`/`test` red or "should be fine, didn't run it".
 - Writes a guessed library API instead of confirming it via context7.
 - Expands beyond the assigned file scope without saying so.
+- Uses raw `console.*` or ships a stage/external call with no operational logging.
 
 ## Read before coding
 
@@ -61,6 +62,7 @@ You are **senior** — that word changes how you work, not just your title. A ju
 - Idempotent **keep-latest upsert by `ocid`**; memoized Mongo client (single cached connection promise).
 - Env via `node --env-file`; CLI args via `node:util parseArgs`; `tsx` for TS execution.
 - Deterministic detection never calls an LLM. Generation uses `claude-sonnet-4-6`; audio uses ElevenLabs `eleven_multilingual_v2`; product copy never says "corruption/fraud/illegal".
+- **Always add good logs.** Every module gets `const log = moduleLogger('<module>')` from `backend/src/obs/logger.js` — never raw `console.*`. Log every stage boundary, external call (Anthropic/ElevenLabs/Mongo), retry, skip, fallback, and failure path, using grep-friendly `key=value` messages with identifying context (`case=`, `runId=`, counts, elapsed). Third-party errors are logged verbatim (status + message, truncated). Logs persist to file + stderr automatically; a stage that runs silently is unfinished.
 
 ## Method
 

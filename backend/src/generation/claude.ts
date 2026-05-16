@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { moduleLogger } from '../obs/logger.js';
 import { loadConfig } from '../config/env.js';
 import type { StoryContentEs, StoryContentEn, CuePoint } from '../schema/index.js';
 
@@ -30,7 +31,7 @@ export interface ClaudeClient {
   }): Promise<ClaudeStoryRaw>;
 }
 
-const log = (m: string): void => console.error(`[claude] ${m}`);
+const log = moduleLogger('claude');
 
 /** Best-effort caseKey for logging only (userBlock starts `CASE <key> — ...`). */
 function caseKeyForLog(userBlock: string): string {
@@ -92,10 +93,7 @@ export function createClaudeClient(): ClaudeClient {
 
   return {
     async generateStory(opts): Promise<ClaudeStoryRaw> {
-      const model =
-        cfg.OPUS_LEAD && opts.isLead
-          ? 'claude-opus-4-7'
-          : 'claude-sonnet-4-6';
+      const model = cfg.OPUS_LEAD && opts.isLead ? 'claude-opus-4-7' : 'claude-sonnet-4-6';
       const userBlock = opts.stricter
         ? `STRICT MODE: Previous response failed guardrails. ${opts.userBlock}`
         : opts.userBlock;
@@ -108,9 +106,11 @@ export function createClaudeClient(): ClaudeClient {
             `generating case=${caseKey} model=${model} ` +
               `isLead=${opts.isLead} attempt=${attempt + 1}`,
           );
+
+          console.log(userBlock);
           const response = await anthropic.messages.create({
             model,
-            max_tokens: 4096,
+            max_tokens: 16384,
             system: [
               {
                 type: 'text',
@@ -145,9 +145,7 @@ export function createClaudeClient(): ClaudeClient {
                 `reason="missing es/en/podcast/scenePlan" ` +
                 `preview="${block.text.slice(0, 120)}"`,
             );
-            throw new ClaudeParseError(
-              'Claude response missing es/en/podcast/scenePlan',
-            );
+            throw new ClaudeParseError('Claude response missing es/en/podcast/scenePlan');
           }
           log(
             `done case=${caseKey} attempt=${attempt + 1} ` +
@@ -157,11 +155,9 @@ export function createClaudeClient(): ClaudeClient {
           );
           return parsed;
         } catch (err) {
+          console.error(err);
           if (err instanceof ClaudeParseError) throw err;
-          if (
-            isRateLimit(err) &&
-            attempt < RETRY_DELAYS_MS.length
-          ) {
+          if (isRateLimit(err) && attempt < RETRY_DELAYS_MS.length) {
             lastErr = err;
             const base = RETRY_DELAYS_MS[attempt]!;
             const delay = base + Math.random() * 500;
@@ -185,15 +181,12 @@ export function createClaudeClient(): ClaudeClient {
           throw err;
         }
       }
-      const finalMessage =
-        lastErr instanceof Error ? lastErr.message : String(lastErr);
+      const finalMessage = lastErr instanceof Error ? lastErr.message : String(lastErr);
       log(
         `failed case=${caseKey} all_attempts_exhausted ` +
           `message="${finalMessage.slice(0, 200)}"`,
       );
-      throw lastErr instanceof Error
-        ? lastErr
-        : new Error(String(lastErr));
+      throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
     },
   };
 }

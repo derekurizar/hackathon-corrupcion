@@ -6,7 +6,10 @@ import {
   ensureIndexesStage,
   getMongoClient,
   closeMongo,
+  moduleLogger,
 } from 'backend';
+
+const log = moduleLogger('cli');
 
 const COMMANDS = [
   'ingest',
@@ -63,7 +66,7 @@ async function main() {
   }
 
   if (!COMMANDS.includes(cmd)) {
-    console.error(`Unknown command: ${cmd}`);
+    log(`Unknown command: ${cmd}`);
     printHelp();
     process.exit(1);
   }
@@ -75,7 +78,7 @@ async function main() {
           const yr = Number.parseInt(values['year'] ?? '', 10);
           const mo = Number.parseInt(values['month'] ?? '', 10);
           if (Number.isNaN(yr) || Number.isNaN(mo)) {
-            console.error('ingest --spike requires --year <Y> and --month <M>');
+            log('ingest --spike requires --year <Y> and --month <M>');
             process.exit(1);
           }
           const { runSpike } = await import('../scripts/spike-zip.js');
@@ -85,7 +88,7 @@ async function main() {
         const year = Number.parseInt(values['year'] ?? '', 10);
         const month = Number.parseInt(values['month'] ?? '', 10);
         if (Number.isNaN(year) || Number.isNaN(month)) {
-          console.error('ingest requires --year <Y> and --month <M>');
+          log('ingest requires --year <Y> and --month <M>');
           process.exit(1);
         }
         const result = await ingestMonth({
@@ -93,7 +96,7 @@ async function main() {
           month,
           dryRun: values['dry-run'] === true,
         });
-        console.log(
+        log(
           `[ingest] ${year}-${month} → ${result.recordsIngested} records ingested` +
             (result.runId ? ` (run ${result.runId})` : ' (dry-run, no DB writes)'),
         );
@@ -105,7 +108,7 @@ async function main() {
           ...(scope !== undefined ? { scope } : {}),
           dryRun: values['dry-run'] === true,
         });
-        console.log(
+        log(
           `[benchmarks] ${result.scope} → ${result.releases} releases, ${result.entities} entities` +
             (result.runId ? ` (run ${result.runId})` : ' (dry-run, no DB writes)'),
         );
@@ -117,7 +120,7 @@ async function main() {
           ...(scope !== undefined ? { scope } : {}),
           dryRun: values['dry-run'] === true,
         });
-        console.log(
+        log(
           `[detect] ${result.scope} → ${result.signals} signals over ${result.releases} releases` +
             (result.runId ? ` (run ${result.runId})` : ' (dry-run, no DB writes)'),
         );
@@ -126,38 +129,40 @@ async function main() {
       case 'generate': {
         const { generate } = await import('backend');
         const { persistAudio } = await import('./s3-audio-adapter.js');
+        const genScope = values['scope'];
         const result = await generate({
-          scope: values['scope'] as string | undefined,
+          ...(genScope !== undefined ? { scope: genScope } : {}),
         });
         if (result.audioItems && result.audioItems.length > 0) {
           const bucket = process.env['AUDIO_BUCKET'] ?? '';
           if (bucket) {
             const audioResult = await persistAudio(result.audioItems, bucket);
-            console.error(
+            log(
               `[generate] audio uploaded=${audioResult.uploaded} skipped=${audioResult.skipped}`,
             );
           } else {
-            console.error(
+            log(
               '[generate] AUDIO_BUCKET not set — skipping S3 upload',
             );
           }
         }
-        console.error(
+        log(
           `[generate] done cases=${result.cases} investigations=${result.investigations} skipped=${result.skipped}`,
         );
         break;
       }
       case 'publish': {
         const { rankAndCluster, publish } = await import('backend');
+        const rankScope = values['scope'];
         const ranked = await rankAndCluster({
-          scope: values['scope'] as string | undefined,
+          ...(rankScope !== undefined ? { scope: rankScope } : {}),
         });
         const result = await publish({
           runId: `run-${new Date().toISOString()}`,
           scope: ranked.scope,
           bundles: ranked.bundles,
         });
-        console.error(
+        log(
           `[publish] investigations=${result.investigations} skipped=${result.skipped} edition=${result.editionId}`,
         );
         break;
@@ -175,10 +180,10 @@ async function main() {
     }
   } catch (err) {
     if (cmd !== 'ping' && err instanceof Error && err.message.startsWith('not implemented')) {
-      console.log(`[${cmd}] Stage not yet implemented — Area 04/05/07`);
+      log(`[${cmd}] Stage not yet implemented — Area 04/05/07`);
       process.exit(0);
     }
-    console.error(err instanceof Error ? err.message : String(err));
+    log(err instanceof Error ? err.message : String(err));
     process.exit(1);
   } finally {
     // Ensure the Mongo client is closed so the process exits cleanly.

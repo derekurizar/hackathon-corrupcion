@@ -15,9 +15,9 @@ describe('rawToCanonical', () => {
   });
 
   it('GT-GCID compound id keeps the full CO-... identifier (no naive split)', () => {
-    expect(
-      rawToCanonical('GT-GCID-CO-0D13D3EE908F02969DED73509B7566AB'),
-    ).toBe('GT-GCID:CO-0D13D3EE908F02969DED73509B7566AB');
+    expect(rawToCanonical('GT-GCID-CO-0D13D3EE908F02969DED73509B7566AB')).toBe(
+      'GT-GCID:CO-0D13D3EE908F02969DED73509B7566AB',
+    );
   });
 
   it('unknown scheme is returned verbatim', () => {

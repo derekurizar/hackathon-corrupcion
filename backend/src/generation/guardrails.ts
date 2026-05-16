@@ -1,8 +1,9 @@
+import { moduleLogger } from '../obs/logger.js';
 import type { ClaudeClient, ClaudeStoryRaw } from './claude.js';
 import type { CaseBundle } from './rank.js';
 import { buildSystemPrefix, buildUserBlock, BANNED_PHRASES } from './prompt.js';
 
-const log = (m: string): void => console.error(`[guardrails] ${m}`);
+const log = moduleLogger('guardrails');
 
 /** Map a structured `reason` string to a stable, grep-friendly check label. */
 function checkLabel(reason: string): string {
@@ -12,9 +13,7 @@ function checkLabel(reason: string): string {
   return 'unknown';
 }
 
-export type GuardrailCheckResult =
-  | { ok: true }
-  | { ok: false; reason: string };
+export type GuardrailCheckResult = { ok: true } | { ok: false; reason: string };
 
 /** Every string leaf in the story output, lower-cased for substring checks. */
 function collectStrings(story: ClaudeStoryRaw): string[] {
@@ -71,13 +70,9 @@ export function checkGuardrails(
   for (const e of bundle.evidence) {
     evidenceTokens.push(e.field.toLowerCase());
     evidenceTokens.push(String(e.value).toLowerCase());
-    if (e.benchmark !== undefined)
-      evidenceTokens.push(String(e.benchmark).toLowerCase());
+    if (e.benchmark !== undefined) evidenceTokens.push(String(e.benchmark).toLowerCase());
   }
-  const findings = [
-    ...story.es.keyFindings,
-    ...story.en.keyFindings,
-  ];
+  const findings = [...story.es.keyFindings, ...story.en.keyFindings];
   for (const finding of findings) {
     const f = finding.toLowerCase();
     const mapped = evidenceTokens.some(
@@ -121,12 +116,7 @@ export async function generateStoryGuarded(
 ): Promise<{ story: ClaudeStoryRaw | null; usedFallback: boolean }> {
   try {
     const systemPrefix = buildSystemPrefix();
-    const userBlock = buildUserBlock(
-      bundle,
-      supplierLabelEs,
-      supplierLabelEn,
-      entityTypeHint,
-    );
+    const userBlock = buildUserBlock(bundle, supplierLabelEs, supplierLabelEn, entityTypeHint);
 
     let lastFailReason = 'no story produced';
 

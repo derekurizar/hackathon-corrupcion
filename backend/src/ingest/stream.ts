@@ -19,10 +19,7 @@ interface YauzlEntry {
 }
 interface YauzlZipFile {
   readEntry: () => void;
-  openReadStream: (
-    entry: YauzlEntry,
-    cb: (err: Error | null, stream?: Readable) => void,
-  ) => void;
+  openReadStream: (entry: YauzlEntry, cb: (err: Error | null, stream?: Readable) => void) => void;
   on: ((ev: 'entry', cb: (entry: YauzlEntry) => void) => void) &
     ((ev: 'end' | 'close', cb: () => void) => void) &
     ((ev: 'error', cb: (err: Error) => void) => void);
@@ -90,9 +87,7 @@ function openJsonEntryStream(zipPath: string): Promise<Readable> {
  * `streamArray()`; each emitted `{ key, value }` yields `value` as a
  * `GuatecomprasRecord`.
  */
-export async function* streamRecords(
-  zipPath: string,
-): AsyncGenerator<GuatecomprasRecord> {
+export async function* streamRecords(zipPath: string): AsyncGenerator<GuatecomprasRecord> {
   const entryStream = await openJsonEntryStream(zipPath);
   const jsonParser = parser();
   const recordsFilter = pick({ filter: 'records' });
