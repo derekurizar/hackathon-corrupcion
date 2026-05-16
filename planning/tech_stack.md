@@ -7,6 +7,10 @@ frontend:
 - Recharts (charts), React Flow (buyer-centric relationship graph)
 - React Router (routes: `/`, `/newsroom`, `/investigation/:caseKey`,
   `/methodology`), i18next (bilingual ES/EN), TanStack Query
+- **Investigative-noir design system** + cinematic chaptered Article
+  (fixed spine, deterministic SceneResolver + scene library, 3 nav modes:
+  scroll / presentation / podcast-approx). Ref `assets/ui_idea.png`.
+  Spec: `idea/05-frontend.md`
 
 backend:
 - Node 20 + TypeScript

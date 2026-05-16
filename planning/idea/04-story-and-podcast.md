@@ -40,28 +40,75 @@ for the single hero/lead investigation only.)
   each supplier with an `entityType` hint = company|individual|unknown),
   values, scope. **The model may only use facts present here.**
 
-**Output (fixed structured JSON, both languages):**
+**Output — chapter-aligned structured JSON, both languages.** The prose is
+keyed to the cinematic **chapter spine** in `05` (Cover · 01 El Caso · 02
+Sigue el Dinero · 03 Las Conexiones · 04 Evidencia · 05 Cronología · Cierre)
+so the article renders predictably while scenes vary by data:
 
 ```jsonc
 {
-  "es": { "headline": "...", "summary": "...",
-          "sections": {
-            "queEncontramos": "...",      // What we found
-            "porQueSeMarco": "...",       // Why it was flagged
-            "laEvidencia": "...",         // The evidence
-            "queSignificaYQueNo": "..."   // What this does and doesn't mean
-          },
-          "keyFindings": ["..."], "caveat": "..." },
-  "en": { "headline": "...", "summary": "...",
-          "sections": { "whatWeFound": "...", "whyFlagged": "...",
-                        "theEvidence": "...", "whatItMeans": "..." },
-          "keyFindings": ["..."], "caveat": "..." },
-  "podcast_script": { "es": "~150 words ≈ 60s, ends with the caveat",
-                       "en": "~150 words ≈ 60s, ends with the caveat" }
+  "es": {
+    "cover":          { "kicker": "...", "headline": "...", "dek": "..." },
+    "elCaso":         "...",   // What we found (newsroom lead)
+    "sigueElDinero":  "...",   // The value story
+    "lasConexiones":  "...",   // The buyer→supplier relationship
+    "cronologia":     "...",   // Timeline narration
+    "cierre":         { "queSignificaYQueNo": "...", "caveat": "..." },
+    "keyFindings":    ["..."]
+  },
+  "en": {
+    "cover":          { "kicker": "...", "headline": "...", "dek": "..." },
+    "theCase": "...", "followTheMoney": "...", "theConnections": "...",
+    "timeline": "...",
+    "closing": { "whatItMeans": "...", "caveat": "..." },
+    "keyFindings": ["..."]
+  },
+  "podcast": {
+    "es": { "script": "~150 words ≈ 60s, ends with the caveat",
+            "cuePoints": [ { "chapter": "cover", "tSec": 0 },
+                           { "chapter": "elCaso", "tSec": 8 }, ... ] },
+    "en": { "script": "...", "cuePoints": [ ... ] }
+  }
 }
 ```
 
-The fixed 4-section template lets `05` render predictably.
+- **Evidencia** chapter has no LLM prose — it renders the structured,
+  traceable evidence items directly (trust core).
+- `podcast.cuePoints` are **approximate** per-chapter start offsets derived
+  from the script segmentation, used by `05`'s podcast mode for chapter
+  auto-advance. **Tight/word-level sync is an explicit non-goal.**
+
+## Scene plan (LLM picks from a rule-filtered shortlist)
+
+The article renders from a **fixed Scene Catalog** (`05`) — no generative
+layout. For each chapter the LLM selects the best scene **and** fills its
+params:
+
+1. **Deterministic shortlist.** Detection output (fired rule families) yields
+   a fixed allow-list of `sceneId`s per chapter (the shortlist mapping is
+   defined in `05`). The LLM can only choose from scenes the data supports.
+2. **LLM selection + params.** `GenerateStory` emits, per chapter, a
+   `scenePlan` entry `{ sceneId ∈ shortlist, params }` — the LLM picks the
+   best-fitting scene and fills its typed param schema.
+3. **Evidence-binding validation.** A deterministic validator requires every
+   **quantitative** param (amounts, %, counts, dates, entity ids/names) to
+   reference a signal/evidence value by id; anything not traceable to the
+   evidence is rejected. **Presentational** params (captions, emphasis,
+   ordering, which 2–3 entities to feature) are free.
+4. **Default fallback.** On validation failure / out-of-shortlist `sceneId` /
+   missing data, the chapter's **guaranteed default scene** renders with
+   params derived straight from evidence. Result is recorded as
+   `source: "fallback"` (vs `"llm"`).
+
+```jsonc
+scenePlan[chapter] = { "sceneId": "...", "params": { ... },
+                       "source": "llm" | "fallback" }
+```
+
+The trust model holds because the **shortlist + evidence-binding validation**
+constrain the LLM — not by forbidding it from choosing. The cinematic shell is
+constant; scene choice + params make each article distinct; the article always
+renders.
 
 **Guardrail enforcement (from `00`):** post-generation check asserts (a) no
 banned phrase, (b) every `keyFinding` maps to a provided evidence item, and
@@ -81,9 +128,11 @@ the UI never masks anything client-side.
 
 ## Podcast (ElevenLabs)
 
-- `Map: GenerateAudio` turns `podcast_script.es` / `.en` into two ~60-second
-  mp3s via **ElevenLabs** (`eleven_multilingual_v2`), using **separate native
-  voices**: `ELEVENLABS_VOICE_ES` and `ELEVENLABS_VOICE_EN` (SSM config).
+- `Map: GenerateAudio` turns `podcast.es.script` / `podcast.en.script` into
+  two ~60-second mp3s via **ElevenLabs** (`eleven_multilingual_v2`), using
+  **separate native voices**: `ELEVENLABS_VOICE_ES` / `ELEVENLABS_VOICE_EN`
+  (SSM). `podcast.{lang}.cuePoints` are persisted for `05`'s podcast mode
+  (approximate chapter auto-advance; not word-synced).
 - Stored in S3 `audio` bucket, keys
   `audio/{caseKey}/{version}/{es|en}.mp3`, served via CloudFront `/audio/*`.
 - Pre-generated in the pipeline (no live TTS during the demo). Skipped if the

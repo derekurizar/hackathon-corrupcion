@@ -55,15 +55,32 @@ copy follows the same journalist-investigative tone.
   individual), retry generation once with a stricter instruction; if it still
   fails, publish the **deterministic evidence-only summary** built directly
   from the signals. This never blocks the pipeline or the demo.
+- **Evidence-bound visuals.** The article's visuals come from a fixed Scene
+  Catalog. The LLM may *select* a scene (from a rule-filtered shortlist) and
+  fill its params, but every quantitative param is validated against the
+  deterministic evidence and rejected otherwise — so a richer-looking visual
+  can never assert a number the data didn't produce. See `05`/`04`.
 - Entities are public institutions and awarded suppliers already published in
   Guatecompras; no private data is introduced.
 
+## Visual identity (a core differentiator)
+
+The UI is **investigative-noir**: a cinematic, documentary "exposé" feel —
+near-black canvas, a single hot blood-red accent, huge condensed uppercase
+display type, film-grain/duotone imagery, deliberate motion. The flagship
+**Investigation Article** is a chaptered, scrollytelling/presentation/podcast
+experience (reference: `../assets/ui_idea.png`). The drama serves
+*comprehension and gravity*, never accusation — the positioning/guardrails
+above still govern all copy. Full design system, chapter spine, the
+data-driven scene system, and motion choreography live in `05-frontend.md`;
+this WOW factor is a primary judging lever (`08`).
+
 ## Brand (configurable)
 
-Single source of truth: `BRAND = { name, tagline }` + i18n keys. Working
-title:
+Single source of truth: `BRAND = { name, tagline }` + i18n keys. Candidate
+working titles (the mock uses "Verdad sin Filtro"):
 
-- ES: **Expediente Público**
+- ES: **Expediente Público** · alt **Verdad sin Filtro**
 - EN: **Open Contract Newsroom**
 
 Never hardcode the name in components, prompts, or audio scripts. The name is

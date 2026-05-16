@@ -200,3 +200,7 @@ all.
   reinforced by 1/3 and 13.
 - All thresholds live in the **Default RuleConfig** above — tune there, never
   hardcode in rule bodies.
+- Detection output also exposes a deterministic **rule-family → scene
+  shortlist** (consumed by `04`/`05`): the set of fired families bounds which
+  Scene-Catalog scenes the LLM may pick per chapter. No rule logic changes —
+  it is a fixed mapping over `family`.

@@ -23,7 +23,7 @@ It is the input for task planning in `../tasks/`.
 | [`02-data-ingestion.md`](./02-data-ingestion.md) | ZIP source, /tmp+yauzl streaming, normalization, entity resolution, keep-latest idempotency |
 | [`03-detection-rules.md`](./03-detection-rules.md) | Pluggable rule engine + 23-rule catalog + **default RuleConfig** + review-priority |
 | [`04-story-and-podcast.md`](./04-story-and-podcast.md) | Claude Sonnet 4.6 story gen, LLM anonymization, ElevenLabs, dedup, Editions |
-| [`05-frontend.md`](./05-frontend.md) | 4 routes (Dashboard, Newsroom, Article, Methodology), bilingual, motion |
+| [`05-frontend.md`](./05-frontend.md) | **Cinematic investigative-noir UI**: design system, chapter spine, dynamic scene system, 3 nav modes, motion; restyled Dashboard/Newsroom/Methodology |
 | [`06-data-model.md`](./06-data-model.md) | MongoDB Atlas collections & indexes (authoritative; cluster is external) |
 | [`07-pipeline.md`](./07-pipeline.md) | Step Functions state machine, stage toggles, API surface |
 | [`08-scope-and-demo.md`](./08-scope-and-demo.md) | 48h sequencing, where polish goes, demo script, risks |
@@ -56,10 +56,14 @@ Source-of-truth references (do **not** re-derive):
 | Podcast | ElevenLabs `eleven_multilingual_v2`, 60s, **separate native ES & EN voices**, pre-generated → S3 |
 | Generation strategy | Batch pre-generate top-N; `MAX_INVESTIGATIONS_PER_RUN` (default ~20) SSM cost guard |
 | Editions | **Featured "issue" per publish-run**; Newsroom feed = **all current** investigations |
-| Story template | Fixed 4 sections (What we found / Why flagged / The evidence / What it does & doesn't mean) + caveat |
-| Views / routes | `/` Dashboard (landing) · `/newsroom` · `/investigation/:caseKey` · `/methodology` |
-| Article | **One adaptive component**, sections degrade gracefully; single buyer-centric React Flow graph |
-| Timeline | Core, with honest "no public data" markers for missing stages |
+| Design language | **Investigative-noir cinematic** (near-black, blood-red accent, condensed display type, film-grain/duotone) — a core differentiator. Ref `../assets/ui_idea.png` |
+| Article experience | **Cinematic chaptered**: fixed spine (Cover · El Caso · Sigue el Dinero · Las Conexiones · Evidencia · Cronología · Cierre) |
+| Scene Catalog | **Finite catalog of fixed scenes** (7 core + 7 variants; `RegionMap`/geo stretch) — no generative engine. Detection gives a per-chapter rule-filtered shortlist; **LLM picks the scene + fills typed params**; quantitative params **evidence-bound & validated**; **guaranteed default scene** per chapter on failure (`scenePlan{sceneId,params,source}`) |
+| Nav modes | **Scroll** (default) · **Presentation** (full-screen slides) · **Podcast** (audio + chapter auto-advance on *approximate* cue points; tight sync = non-goal) |
+| Story content | Chapter-aligned ES/EN prose (cover/elCaso/sigueElDinero/lasConexiones/cronologia/cierre) + keyFindings; caveat in Cierre; Evidencia = structured (no LLM prose) |
+| Story template | superseded by the chapter-aligned schema above |
+| Views / routes | `/` Dashboard (landing) · `/newsroom` · `/investigation/:caseKey` · `/methodology` — Article cinematic; others restyled to same system, lighter motion |
+| Timeline | Core chapter, with honest "no public data" markers for missing stages |
 | Language | **Fully bilingual** ES/EN (UI, stories, podcast) |
 | Frontend | **Vite + React SPA** + Tailwind + shadcn/ui + Framer Motion + Recharts + React Flow + i18next |
 | Hosting FE | S3 + CloudFront |
@@ -72,15 +76,16 @@ Source-of-truth references (do **not** re-derive):
 | Atlas networking | Public SRV + allowlist `0.0.0.0/0` + strong creds + TLS; **no VPC/NAT** |
 | Build approach | **AWS-native first**; `@core` testable modules + local CLI runner (no LocalStack/SAM); local-per-stage then wrap |
 | Dashboard angle | National "**procurement radar**" + statistics |
-| Geo features | **Stretch only** — `region` captured in model, no map UI |
-| Judging emphasis | **Civic impact + storytelling + design/UX wow** (technical breadth secondary) |
-| MVP floor | **Hero + Dashboard + Podcast** (stop after sequencing step 7), deployed |
-| Product name | **Configurable** (single brand config / i18n). Working title *Expediente Público* / *Open Contract Newsroom* |
+| Geo features | **Stretch only** — `region` captured in model; `RegionMap` (02 Sigue el Dinero) is a stretch scene |
+| Judging emphasis | **Civic impact + storytelling + design/UX wow** (technical breadth secondary); the **cinematic Article is THE core WOW** |
+| MVP floor | **Hero (cinematic Article: spine + default scenes + Scroll mode) + Dashboard + Podcast**, deployed |
+| Product name | **Configurable** (single brand config / i18n). Candidates: *Expediente Público* / *Verdad sin Filtro* (ES) · *Open Contract Newsroom* (EN) |
 
 ## Brand name — configurable
 
 The product name is **not final**. It lives as a single config value
 (`BRAND.name`, `BRAND.tagline`) plus i18n keys, so it can be swapped in one
-place. Working title: **Expediente Público** (ES) / **Open Contract Newsroom**
-(EN). Do not hardcode the name in components, prompts, or audio scripts —
-always read from config/i18n.
+place. Candidates: **Expediente Público** / **Verdad sin Filtro** (ES) ·
+**Open Contract Newsroom** (EN) — the mock uses "Verdad sin Filtro". Do not
+hardcode the name in components, prompts, or audio scripts — always read from
+config/i18n.

@@ -33,16 +33,21 @@ stretch**, and saved time is reinvested into polish.
    `GenerateStory` (Claude Sonnet 4.6, ES+EN, anonymized) for the top
    supplier-concentration case; `Publish` → `investigations` + Edition +
    `dashboardStats`.
-5. **Article UI** — the adaptive full-anatomy Investigation Article rendering
-   the hero (hero+counter, timeline w/ honest missing markers, buyer-centric
-   React Flow graph, Recharts price, signal cards, evidence panel, fixed
-   4-section body, methodology footer). **Centerpiece — polish here.**
-6. **Newsroom + Dashboard** — feed = all investigations + Edition banner +
-   filters; Dashboard radar from `dashboardStats` (94.5% stat, counters,
-   distributions). `/methodology` page.
+5. **Cinematic Article (THE core WOW)** — build the noir design system +
+   the **chapter spine** (Cover · El Caso · Sigue el Dinero · Las Conexiones ·
+   Evidencia · Cronología · Cierre), the **7 core Scene-Catalog scenes**
+   (one default per chapter — guarantees it always renders), the
+   `ScenePicker` (renders `scenePlan`, falls back to default), and **Scroll
+   mode**. Render the hero case end-to-end. **Pour the polish budget here.**
+   Then **Presentation mode**, then **Podcast mode** (approx cue-point
+   auto-advance), in that priority.
+6. **Newsroom + Dashboard** — restyled to the same noir system with lighter
+   motion: feed = all investigations as dossier cards + Edition banner +
+   filters; Dashboard "war room" radar from `dashboardStats` (94.5% stat,
+   counters, distributions); `/methodology` page.
 7. **Bilingual + podcast** — i18n wired; `GenerateAudio` (ElevenLabs 60s,
-   separate native ES/EN voices); embedded player; language toggle switches
-   text + audio.
+   separate native ES/EN voices); transport-bar player; language toggle
+   switches text + audio (+ cue points).
 8. **Remaining rules** — fill out the rest of the 23 (engine is pluggable).
    *(Stretch — only if polish budget allows.)*
 9. **Widen ingestion** — confirm full ~12-month load (`INGEST_ONLY` bulk),
@@ -56,13 +61,20 @@ bilingual supplier-concentration investigation end-to-end + Dashboard radar +
 ## Core vs stretch
 
 **Core (must ship):** ingest (target ~12 months), ≥4 rules, hero
-supplier-concentration investigation (ES/EN + podcast), full-anatomy adaptive
-Article, Newsroom feed + featured Edition, Dashboard radar, `/methodology`
-page, dedup, AWS-native deploy.
+supplier-concentration investigation (ES/EN + podcast), the **cinematic
+chaptered Article** with the design system + the **7 core Scene-Catalog
+scenes** + `ScenePicker` + default fallback + **Scroll & Presentation
+modes**, Newsroom + Dashboard restyled, `/methodology` page, dedup,
+AWS-native deploy.
 
-**Stretch:** all 23 rules; geo/region map UI; past-editions browsing;
-multi-case "digest" articles; `GET /entities/{id}` & `GET /editions/{id}`;
-Opus 4.7 for the hero only; on-demand generation.
+**In scope after core (7 high-value scene variants):** `CaseSplit`,
+`PriceBars`, `ThresholdLadder`, `SplittingCluster`, `RepeatBidders`,
+`EvidenceCompare`, `GapSpotlight`.
+
+**Stretch:** `RegionMap`/geo scene; Podcast-mode chapter auto-advance
+refinement; all 23 rules; past-editions browsing; multi-case "digest"
+articles; `GET /entities/{id}` & `GET /editions/{id}`; Opus 4.7 for the hero
+only; on-demand generation.
 
 ## Demo script (~3 min)
 
@@ -71,13 +83,16 @@ Opus 4.7 for the hero only; on-demand generation.
    distribution.
 2. **Newsroom** — featured Edition banner; scan the cards; apply a filter
    (e.g. F2 / high priority).
-3. **Hero Investigation Article** — open the supplier-concentration story:
-   animated value counter, timeline (with honest "no public data" markers),
-   buyer→supplier React Flow graph, price comparison, signal cards. Scroll to
-   the **Evidence panel** — each claim traces to exact OCDS fields +
-   benchmark. Emphasize: *signals, not proof*; show `/methodology`.
-4. **Podcast** — press "Listen": 60-second ES narration (native voice). Toggle
-   to **EN** — UI + story + audio all switch. Close on the caveat footer.
+3. **Cinematic Investigation Article** — open the hero. **Scroll mode**:
+   cover (parallax + value count-up) → El Caso → Sigue el Dinero → Las
+   Conexiones (graph builds in) → Evidencia (claims trace to exact OCDS
+   fields + benchmark) → Cronología (honest "no public data" markers) →
+   Cierre. Emphasize *signals, not proof*; show `/methodology`.
+4. **Presentation mode** — toggle: full-screen cinematic chapters, advance
+   with arrows. The "wow" reveal.
+5. **Podcast mode** — "Escuchar": 60s ES narration (native voice), chapters
+   auto-advance on approximate cue points. Toggle to **EN** — UI + story +
+   audio + cue points all switch. Close on the Cierre caveat.
 
 ## Risks & mitigations
 
@@ -90,6 +105,9 @@ Opus 4.7 for the hero only; on-demand generation.
 | Sparse data for some rules | Hero relies on full-scope concentration; single-month-capable rules (1,5,15,17,20,21,22) cover the thin slice |
 | Cost (Claude/ElevenLabs) | `MAX_INVESTIGATIONS_PER_RUN` guard + Map concurrency 3 + prompt caching + `evidenceHash` skip |
 | Bilingual doubles content | Single Claude call returns ES+EN+scripts; pre-rendered, not on-demand |
+| Cinematic UI / scene catalog scope (solo 48h) | **Finite** Scene Catalog (no generative engine); 7 core scenes = MVP with a **guaranteed default per chapter** so the Article always renders; 7 variants after core; geo scene + podcast-sync refinement = stretch; build Scroll → Presentation → Podcast |
+| LLM picks a scene that misreads data | Rule-filtered shortlist bounds choices + **evidence-binding param validation** rejects any number/label not traceable to a signal; on fail → deterministic default scene (`source:"fallback"`) |
+| Animation jank in live demo | transform/opacity-only motion, `content-visibility`, code-split scenes, `prefers-reduced-motion` path; rehearse on the demo machine |
 
 ## Definition of done (demo-ready)
 
