@@ -7,11 +7,20 @@ import {
   generateStory,
   generateAudio,
   publish,
+  ensureIndexesStage,
   getMongoClient,
   closeMongo,
 } from 'backend';
 
-const COMMANDS = ['ingest', 'benchmarks', 'detect', 'generate', 'publish', 'ping'] as const;
+const COMMANDS = [
+  'ingest',
+  'benchmarks',
+  'detect',
+  'generate',
+  'publish',
+  'ensure-indexes',
+  'ping',
+] as const;
 type Command = (typeof COMMANDS)[number];
 
 function printHelp() {
@@ -23,6 +32,9 @@ function printHelp() {
   console.log('  detect       Run detection rules (→ runDetection)');
   console.log('  generate     Full generation chain: rank → story → audio → publish');
   console.log('  publish      Publish investigations (→ publish)');
+  console.log(
+    '  ensure-indexes  Create/verify all MongoDB Atlas indexes (idempotent)',
+  );
   console.log('  ping         Smoke test: connect to MongoDB Atlas and print ok');
 }
 
@@ -68,6 +80,9 @@ async function main() {
       case 'publish':
         await publish();
         break;
+      case 'ensure-indexes':
+        await ensureIndexesStage();
+        break;
       case 'ping': {
         const client = await getMongoClient();
         await client.db().admin().command({ ping: 1 });
@@ -83,6 +98,15 @@ async function main() {
     }
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);
+  } finally {
+    // Ensure the Mongo client is closed so the process exits cleanly.
+    // ping manages its own lifecycle (calls closeMongo inside the case).
+    // All other commands need this cleanup.
+    if (cmd !== 'ping') {
+      await closeMongo().catch(() => {
+        /* ignore close errors */
+      });
+    }
   }
 }
 
