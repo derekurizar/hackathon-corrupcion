@@ -1,0 +1,200 @@
+:root {
+  /* === PALETTE — hex (idea/05 design tokens) === */
+  --color-bg-base: #0a0a0b;
+  --color-bg-panel: #121214;
+  --color-bg-panel-2: #17171a;
+  --color-accent-red: #e10600;
+  --color-accent-red-deep: #b0050b;
+  --color-text-hi: #f5f5f5;
+  --color-text-mid: #9a9aa0;
+  --color-text-dim: #5a5a5e;
+  --color-line: #262629;
+  --color-priority-high: #e10600;
+  --color-priority-med: #e6a100;
+  --color-priority-low: #6b7280;
+
+  /* === shadcn HSL semantic vars === */
+  --background: 10 5% 4%;
+  --foreground: 0 0% 96%;
+  --card: 240 3% 7%;
+  --card-foreground: 0 0% 96%;
+  --popover: 240 3% 9%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 2 100% 44%;
+  --primary-foreground: 0 0% 96%;
+  --secondary: 240 3% 7%;
+  --secondary-foreground: 240 4% 62%;
+  --muted: 240 2% 10%;
+  --muted-foreground: 240 1% 36%;
+  --accent: 2 100% 44%;
+  --accent-foreground: 0 0% 96%;
+  --destructive: 2 100% 44%;
+  --destructive-foreground: 0 0% 96%;
+  --border: 240 2% 15%;
+  --input: 240 2% 15%;
+  --ring: 2 100% 44%;
+  --radius: 0.25rem;
+
+  /* === TYPE SCALE === */
+  --text-display-2xl: clamp(4rem, 10vw, 9rem);
+  --text-display-xl: clamp(2.5rem, 6vw, 5.5rem);
+  --text-display-lg: clamp(2rem, 4vw, 3.5rem);
+  --text-chapter-num: clamp(4rem, 8vw, 7rem);
+  --text-body-lg: 1.125rem;
+  --text-body-md: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-label: 0.75rem;
+  --text-kicker: 0.6875rem;
+
+  /* === LETTER SPACING === */
+  --tracking-display: -0.03em;
+  --tracking-kicker: 0.15em;
+  --tracking-label: 0.08em;
+
+  /* === LINE HEIGHT === */
+  --leading-display: 0.92;
+  --leading-body: 1.6;
+  --leading-tight: 1.2;
+
+  /* === LAYOUT === */
+  --brand-rail-width: 220px;
+  --brand-rail-width-narrow: 64px;
+  --transport-bar-height: 52px;
+  --transport-bar-height-mobile: 60px;
+
+  /* === GRAIN === */
+  --grain-opacity: 0.045;
+  --grain-size: 200px;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-hi);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--color-bg-base);
+    color: var(--color-text-hi);
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent-red);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Tabular lining figures so animated counters never jitter mid count-up. */
+  .numeric-tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+  /* Heavy condensed uppercase display lockup. */
+  .headline-display {
+    font-family: 'Anton', 'Bebas Neue', Impact, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-display);
+    text-wrap: balance;
+  }
+  /* Small letter-spaced uppercase kicker. */
+  .kicker {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: var(--text-kicker);
+    letter-spacing: var(--tracking-kicker);
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    font-weight: 600;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+@layer components {
+  .app-shell {
+    display: grid;
+    grid-template-areas:
+      'rail main'
+      'rail transport';
+    grid-template-columns: var(--brand-rail-width) 1fr;
+    grid-template-rows: 1fr var(--transport-bar-height);
+    min-height: 100dvh;
+    background-color: var(--color-bg-base);
+    overflow: hidden;
+  }
+  @media (max-width: 767px) {
+    .app-shell {
+      grid-template-areas:
+        'main'
+        'transport';
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr var(--transport-bar-height-mobile);
+    }
+  }
+
+  /* Film-grain overlay — transform-only drift, never layout props. */
+  .grain-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: var(--grain-size);
+    animation: grain-drift 8s steps(10) infinite;
+    will-change: transform;
+  }
+  @keyframes grain-drift {
+    0% {
+      transform: translate(0, 0);
+    }
+    10% {
+      transform: translate(-3%, -4%);
+    }
+    20% {
+      transform: translate(-6%, 2%);
+    }
+    30% {
+      transform: translate(2%, -5%);
+    }
+    40% {
+      transform: translate(-3%, 6%);
+    }
+    50% {
+      transform: translate(-6%, -2%);
+    }
+    60% {
+      transform: translate(4%, -4%);
+    }
+    70% {
+      transform: translate(2%, 6%);
+    }
+    80% {
+      transform: translate(-4%, 2%);
+    }
+    90% {
+      transform: translate(4%, 4%);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* Texture stays visible; only the drift stops. */
+    .grain-overlay {
+      animation: none;
+      transform: none;
+      will-change: auto;
+    }
+  }
+}

@@ -1,0 +1,75 @@
+/* Noir image / surface treatments — CSS blend only, no heavy assets. */
+
+/* Red→black duotone for hero/imagery (idea/05 "duotone (red→black)"). */
+.duotone-red {
+  position: relative;
+  filter: grayscale(1) contrast(1.1);
+}
+.duotone-red::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background: linear-gradient(
+    180deg,
+    var(--color-accent-red-deep) 0%,
+    var(--color-bg-base) 100%
+  );
+}
+
+/* Vignette — darkens edges, keeps center legible. */
+.vignette {
+  position: relative;
+}
+.vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(10, 10, 11, 0.85) 100%);
+}
+.vignette-heavy {
+  position: relative;
+}
+.vignette-heavy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 20%, rgba(10, 10, 11, 0.95) 100%);
+}
+
+/* Soft red glow on the single key datum per chapter (text + box variants). */
+.red-glow {
+  text-shadow:
+    0 0 12px rgba(225, 6, 0, 0.45),
+    0 0 24px rgba(225, 6, 0, 0.25);
+}
+.red-glow-box {
+  box-shadow:
+    0 0 24px 4px rgba(225, 6, 0, 0.35),
+    0 0 0 1px rgba(225, 6, 0, 0.4) inset;
+}
+
+/* Fires ONCE on chapter enter (never looped) — meaning, not decoration. */
+.red-glow-pulse {
+  animation: red-glow-pulse 1400ms cubic-bezier(0.16, 1, 0.3, 1) 1 both;
+}
+@keyframes red-glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(225, 6, 0, 0);
+  }
+  45% {
+    box-shadow: 0 0 28px 6px rgba(225, 6, 0, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 12px 2px rgba(225, 6, 0, 0.18);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .red-glow-pulse {
+    animation: none;
+    box-shadow: 0 0 12px 2px rgba(225, 6, 0, 0.18);
+  }
+}

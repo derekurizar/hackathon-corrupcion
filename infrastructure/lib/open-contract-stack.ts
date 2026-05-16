@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { Duration, RemovalPolicy, Stack, CfnOutput } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack, CfnOutput, Fn } from 'aws-cdk-lib';
 import type { StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -8,6 +8,10 @@ import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 
 // CDK requires a Stack subclass; this is the documented exception to the
 // codebase "no classes" rule.
@@ -33,6 +37,106 @@ export class OpenContractStack extends Stack {
       autoDeleteObjects: true,
     });
 
+    // ── API Gateway HTTP API + Lambda handlers ────────────────────────────────
+    // The MongoUri secret is declared here (ahead of the Secrets Manager block
+    // below) because the API Lambdas + HttpApi origin must exist BEFORE the
+    // CloudFront Distribution that references the API hostname.
+
+    const mongoUri = new secretsmanager.Secret(this, 'MongoUri', {
+      secretName: 'open-contract/MONGODB_URI',
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    // Deviation from plan: the plan used `../node_modules/backend`, but pnpm
+    // copies the `backend` package WITHOUT its `pnpm-lock.yaml` (lockfiles are
+    // not part of a published package) and without the full transitive
+    // dependency tree esbuild needs to bundle the mongodb driver. Point at the
+    // canonical sibling `backend/` source (the `file:../backend` model used
+    // elsewhere in this repo) which has the lockfile + installed node_modules.
+    const backendRoot = fileURLToPath(
+      new URL('../../backend', import.meta.url),
+    );
+    const handlersDir = `${backendRoot}/src/handlers`;
+    const backendLockFile = `${backendRoot}/pnpm-lock.yaml`;
+
+    const makeApiFn = (
+      id: string,
+      entryFile: string,
+    ): lambdaNode.NodejsFunction =>
+      new lambdaNode.NodejsFunction(this, id, {
+        entry: `${handlersDir}/${entryFile}`,
+        handler: 'handler',
+        runtime: lambda.Runtime.NODEJS_20_X,
+        projectRoot: backendRoot,
+        depsLockFilePath: backendLockFile,
+        timeout: Duration.seconds(15),
+        memorySize: 512,
+        environment: {
+          MONGODB_URI: mongoUri.secretValue.unsafeUnwrap(),
+        },
+        bundling: {
+          // bundle everything (mongodb driver included); overrides CDK default
+          // that externalizes @aws-sdk/*
+          externalModules: [],
+          minify: true,
+        },
+      });
+
+    const statsFn = makeApiFn('StatsFn', 'stats.ts');
+    const investigationsFn = makeApiFn('InvestigationsFn', 'investigations.ts');
+    const investigationFn = makeApiFn('InvestigationFn', 'investigation.ts');
+    const editionsFn = makeApiFn('EditionsFn', 'editions.ts');
+    const filtersFn = makeApiFn('FiltersFn', 'filters.ts');
+
+    // grant each Lambda IAM read access to the secret
+    [statsFn, investigationsFn, investigationFn, editionsFn, filtersFn].forEach(
+      (fn) => mongoUri.grantRead(fn),
+    );
+
+    // ── HTTP API v2 ───────────────────────────────────────────────────────────
+
+    const httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
+      apiName: 'open-contract-api',
+      // required: throttle lives on the stage, not HttpApiProps
+      createDefaultStage: false,
+    });
+
+    new apigwv2.HttpStage(this, 'DefaultStage', {
+      httpApi,
+      stageName: '$default',
+      autoDeploy: true,
+      throttle: { rateLimit: 100, burstLimit: 200 },
+    });
+
+    httpApi.addRoutes({
+      path: '/stats',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('StatsInt', statsFn),
+    });
+    httpApi.addRoutes({
+      path: '/investigations',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('InvestigationsInt', investigationsFn),
+    });
+    httpApi.addRoutes({
+      path: '/investigations/{caseKey}',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('InvestigationInt', investigationFn),
+    });
+    httpApi.addRoutes({
+      path: '/editions/current',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('EditionsInt', editionsFn),
+    });
+    httpApi.addRoutes({
+      path: '/filters',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new HttpLambdaIntegration('FiltersInt', filtersFn),
+    });
+
+    // derive the API hostname for CloudFront (strips "https://" and trailing "/")
+    const apiHost = Fn.select(2, Fn.split('/', httpApi.apiEndpoint));
+
     // ── CloudFront Distribution ───────────────────────────────────────────────
 
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
@@ -45,6 +149,14 @@ export class OpenContractStack extends Stack {
         '/audio/*': {
           origin: origins.S3BucketOrigin.withOriginAccessControl(audioBucket),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        },
+        '/api/*': {
+          origin: new origins.HttpOrigin(apiHost, { originPath: '/api' }),
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+          originRequestPolicy:
+            cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         },
       },
       errorResponses: [
@@ -64,11 +176,8 @@ export class OpenContractStack extends Stack {
     });
 
     // ── Secrets Manager (no value — set out-of-band) ──────────────────────────
-
-    new secretsmanager.Secret(this, 'MongoUri', {
-      secretName: 'open-contract/MONGODB_URI',
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
+    // Note: the MongoUri secret is declared earlier in the API Gateway block
+    // (ordering: API Lambdas/origin must exist before the CloudFront Distribution).
 
     new secretsmanager.Secret(this, 'AnthropicKey', {
       secretName: 'open-contract/ANTHROPIC_API_KEY',
@@ -128,6 +237,11 @@ export class OpenContractStack extends Stack {
 
     new CfnOutput(this, 'AudioBucketName', {
       value: audioBucket.bucketName,
+    });
+
+    new CfnOutput(this, 'ApiEndpoint', {
+      value: httpApi.apiEndpoint,
+      description: 'HTTP API v2 base URL (also available at <CloudFront>/api/*)',
     });
   }
 }

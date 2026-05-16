@@ -1,0 +1,8 @@
+/* CSS spec: @import must precede @tailwind / other statements.
+   tokens.css + treatments.css declare their own @layer blocks internally. */
+@import './styles/tokens.css';
+@import './ui/treatments.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
