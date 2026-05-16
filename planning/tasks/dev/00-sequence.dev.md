@@ -19,10 +19,10 @@ projects**, each owned by its area:
 
 | Folder | Role | Owner area |
 |---|---|---|
-| `backend/` | **Canonical** shared code: OCDS types, `CuratedRelease` schema, config, Mongo client, all stage logic | 01 bootstrap; 03/04/05/07 |
-| `data-integestion/` | Dev-loop **CLI runner**; consumes `backend/` via `file:../backend` | 01 skeleton; 04 |
+| `backend/` | **Canonical** shared code: OCDS types, `CuratedRelease` schema, config, Mongo client, all stage logic, **thin Lambda handlers** (`src/handlers/`, type-only `aws-lambda`) | 01 bootstrap; 02 handlers; 03/04/05/07 |
+| `data-integestion/` | Dev-loop **CLI runner**; 1st `file:../backend` consumer | 01 skeleton; 04 |
 | `frontend/` | Vite + React SPA | 10 |
-| `infrastructure/` | Single AWS CDK app | 02 |
+| `infrastructure/` | Single AWS CDK app; **2nd** `file:../backend` consumer (bundles handlers) | 02 |
 
 Consequences for this plan: no `@core`/`@scene-contract` alias (shared code =
 the `backend` package via a local `file:` dep); no root `pnpm -r` — every
@@ -142,7 +142,9 @@ when its exit commands pass.
         (memoized client; `cli ping` smoke green)
   - [ ] all **8 collections + indexes** created (`curatedReleases`, `entities`,
         `benchmarks`, `signals`, `investigations`, `editions`,
-        `dashboardStats`, `pipelineRuns`) per `../../idea/06`
+        `dashboardStats`, `pipelineRuns`) per `../../idea/06` —
+        `pnpm --dir data-integestion cli ensure-indexes` runs twice clean and
+        `getIndexes` shows the `../../idea/06` set
   - [ ] scene-contract validator unit-tested with fixtures (Zod param schemas,
         shortlist map, evidence-binding + `deriveFromEvidence` defaults)
 
@@ -223,8 +225,8 @@ phase-gate checks pass.
 |---|---|---|---|
 | 00 sequence (this) | — | ✅ | n/a |
 | 01 workspace-tooling | 0 | ✅ | ⬜ |
-| 02 infrastructure | 0/4 | ⬜ | ⬜ |
-| 03 core-data-model | 0 | ⬜ | ⬜ |
+| 02 infrastructure | 0/4 | ✅ | ⬜ |
+| 03 core-data-model | 0 | ✅ | ⬜ |
 | 06 scene-contract | 0/4 | ⬜ | ⬜ |
 | 04 ingestion | 1 | ⬜ | ⬜ |
 | 05 benchmarks-detection | 1/4 | ⬜ | ⬜ |
