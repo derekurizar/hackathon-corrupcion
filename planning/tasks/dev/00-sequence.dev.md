@@ -21,15 +21,23 @@ projects**, each owned by its area:
 |---|---|---|
 | `backend/` | **Canonical** shared code: OCDS types, `CuratedRelease` schema, config, Mongo client, all stage logic, **thin Lambda handlers** (`src/handlers/`, type-only `aws-lambda`) | 01 bootstrap; 02 handlers; 03/04/05/07 |
 | `data-integestion/` | Dev-loop **CLI runner**; 1st `file:../backend` consumer | 01 skeleton; 04 |
-| `frontend/` | Vite + React SPA | 10 |
-| `infrastructure/` | Single AWS CDK app; **2nd** `file:../backend` consumer (bundles handlers) | 02 |
+| `frontend/` | Vite + React SPA (API types **frontend-owned/zod-validated** — no sync; scene-contract = Area 06 synced copy) | 10 |
+| `infrastructure/` | Single AWS CDK app; **2nd** `file:../backend` consumer (bundles handlers) | 02 (+ Area 09 adds the 5 API routes/Lambdas — additive; **+ Area 08 pipeline absorbed into 02**) |
+
+> **Area 08 is merged into Area 02** (project-owner decision). There is **no
+> `dev/08-pipeline.dev.md`**; `../08-pipeline.md` stays the source-of-truth
+> spec (untouched) and is **fulfilled by `dev/02-infrastructure.dev.md`**
+> (Epic 2.3 builds the pipeline CDK; Epic 2.5 absorbs Area 08's enablement +
+> audio-S3 glue + resilience/toggle/e2e). Area 02 owns the full pipeline.
 
 Consequences for this plan: no `@core`/`@scene-contract` alias (shared code =
 the `backend` package via a local `file:` dep); no root `pnpm -r` — every
 command is **per-folder** (`pnpm --dir <folder> …`); each area sets up only its
 own folder against shared **root config files** (`tsconfig.base.json`,
 `eslint.config.mjs`, `.prettierrc`, `.editorconfig`, `.gitignore`,
-`.env.example`). `@scene-contract` → `backend/src/scene-contract/` (Area 06).
+`.env.example`). `@scene-contract` → `backend/src/scene-contract/` (Area 06) — pure/
+copy-portable; `frontend/` consumes a **hand-synced copy** (no `file:` dep,
+drift risk; see `dev/06-scene-contract.dev.md`).
 Where this doc says `@core` it means the `backend` package.
 
 ---
@@ -44,7 +52,9 @@ Where this doc says `@core` it means the `backend` package.
 - **Authoring order of the per-area dev plans** (follows the critical chain in
   `../00-sequence.md` line 122, one at a time):
 
-  `00 → 01 → 02 → 03 → 06 → 04 → 05 → 07 → 09 → 10 → 11 → 12 → 08`
+  `00 → 01 → 02 → 03 → 06 → 04 → 05 → 07 → 09 → 10 → 11 → 12`
+  *(Area 08 absorbed into Area 02 — no separate `08` dev plan; its scope is
+  Epic 2.5 of `dev/02-infrastructure.dev.md`.)*
 
   Each is written only when its turn comes; do not pre-write downstream plans
   (spec may shift as upstream areas land).
@@ -146,24 +156,37 @@ when its exit commands pass.
         `pnpm --dir data-integestion cli ensure-indexes` runs twice clean and
         `getIndexes` shows the `../../idea/06` set
   - [ ] scene-contract validator unit-tested with fixtures (Zod param schemas,
-        shortlist map, evidence-binding + `deriveFromEvidence` defaults)
+        shortlist map, evidence-binding + `deriveFromEvidence` defaults) —
+        `pnpm --dir backend test` scene-contract suite green + purity grep +
+        standalone copy `tsc --noEmit`
 
 ### Phase 1 — Data path  (Areas 04, 05)
 - Entry: Phase 0 exit green; Guatecompras URL verified.
 - Order: 04 → 05 (05 reads `curatedReleases` + benchmarks).
 - Exit:
   - [ ] ≥1 month ingested (ZIP→`/tmp`→`yauzl`→`stream-json`; keep-latest
-        idempotent upsert by `ocid`; entity resolution + `entityType`)
-  - [ ] benchmarks computed for the ingested scope
-  - [ ] signals written for the **full rule set** on real data
+        idempotent upsert by `ocid`; entity resolution + `entityType`) —
+        `pnpm --dir data-integestion cli ingest --year <Y> --month <M>` then a
+        re-ingest yields no dups (`getByOcid` shows latest) + entity docs
+        present
+  - [ ] benchmarks computed for the ingested scope —
+        `pnpm --dir data-integestion cli benchmarks` writes a
+        `scope:<min>..<max>` doc
+  - [ ] signals written for the **full rule set** on real data —
+        `pnpm --dir data-integestion cli detect` (all **23 rules** implemented
+        in P1, untuned; Area 05 Epic 5.4 elevated from spec Phase 4 — see
+        `dev/05-benchmarks-detection.dev.md`); re-run yields identical counts
   - [ ] spot-check a sample of signals vs `../../idea/03` by hand
 
 ### Phase 2 — Intelligence  (Area 07)
 - Entry: Phase 1 exit green; **ElevenLabs key + ES/EN voices acquired**.
 - Exit:
   - [ ] top-N investigations persisted with **valid `scenePlan`** (Area 06
-        validator passes)
+        validator passes) — `pnpm --dir data-integestion cli generate
+        --scope <min..max>` (rank→story→audio→publish)
   - [ ] bilingual ES/EN content; audio in S3 `audio` bucket; cue points
+        (audio S3 write is **caller-owned** — `data-integestion` dev loop /
+        infra deployed; `backend` stays AWS-SDK-free)
   - [ ] an `editions` doc + `dashboardStats` doc written
   - [ ] guardrail post-checks pass (no banned phrase; every `keyFinding` maps
         to evidence; individuals anonymized); fail → retry once → deterministic
@@ -175,10 +198,20 @@ when its exit commands pass.
 - Order: 09 → 10 → (11 ∥ 12).
 - Exit = **First usable product increment** (`../00-sequence.md` 103–116):
   - [ ] API serves `/stats`, `/investigations`(+filters),
-        `/investigations/{caseKey}`, `/editions/current`, `/filters`
+        `/investigations/{caseKey}`, `/editions/current`, `/filters` —
+        **5 per-route Lambdas/routes**; `curl https://<cf>/api/<endpoint>`
+        per route returns the projected DTO (no `signalIds`/raw individual
+        ids) after `cdk deploy`
   - [ ] SPA serves Dashboard (radar from `dashboardStats`), Newsroom (all
         current investigations + current Edition), and the cinematic Article
         with the **7 core scenes** in Scroll mode, fully bilingual + 60s podcast
+        — foundation (Area 10): `pnpm --dir frontend build` +
+        `pnpm --dir infrastructure run deploy:fe`; deep-link refresh resolves;
+        ES/EN toggle works (views filled by Areas 11/12) — Area 11 P3 =
+        Article shell + `ScenePicker` + 7 core scenes + Scroll + basic ES/EN
+        audio; Presentation/Podcast-mode auto-advance + a11y/perf hardening =
+        Area 11 **Phase 4**. Area 12 P3 = Dashboard/Newsroom/Methodology
+        views; Epic 12.4 polish = **Phase 4**
   - [ ] every article claim is evidence-traceable; individual suppliers
         anonymized; caveat present in text **and** audio
   - [ ] deployed (S3/CloudFront + API + Atlas); reproducible via the
@@ -188,18 +221,23 @@ when its exit commands pass.
 - Entry: Phase 3 exit green. Items independent/parallelizable.
 - Exit:
   - [ ] full ~12-month ingest; all **23 rules** tuned on the full corpus
-  - [ ] 7 high-value scene variants; `RegionMap` (stretch)
-  - [ ] Area 08: EventBridge monthly safe-day cron + Step Functions wraps the
-        proven `backend` stages; stage toggles; resilience (`MaxConcurrency 3`,
+        (Area 05 rules already implemented in P1 — Phase 4 = **tuning only**)
+  - [ ] 7 high-value scene variants; `RegionMap` (stretch) (+ Area 11
+        Presentation mode & Podcast-mode auto-advance + a11y/perf hardening)
+  - [ ] **Area 02 (Phase 4, absorbed Area 08 — Epic 2.5):** EventBridge
+        monthly safe-day cron enabled + Step Functions wraps the proven
+        `backend` stages; stage toggles; resilience (`MaxConcurrency 3`,
         429 backoff, partial-success); one end-to-end pipeline run
   - [ ] a11y (`prefers-reduced-motion`, keyboard) + perf budget (60fps,
         code-split scenes); observability; guardrail/e2e tests; copy pass
+        (+ Area 12 Epic 12.4: empty/error/skeletons/responsive/reduced-motion)
 
 ---
 
 ## 5. Dependency chain → milestone map
 
-`01 → 02/03 → 06 → 04 → 05 → 07 → 09 → 10 → 11/12 → 08 → (Phase 4 depth)`
+`01 → 02/03 → 06 → 04 → 05 → 07 → 09 → 10 → 11/12 → (Phase 4 depth;
+pipeline = Area 02 Epic 2.5, absorbed Area 08)`
 
 | Milestone | Means | Parallelizable |
 |---|---|---|
@@ -211,7 +249,7 @@ when its exit commands pass.
 | M5 API | 09 done | — |
 | M6 App shell | 10 done | — |
 | M7 Usable product | 11 ∥ 12 done | 11 ∥ 12 after 10 |
-| M8 Automated pipeline | 08 done | — |
+| M8 Automated pipeline | Area 02 Epic 2.5 done (absorbed Area 08) | — |
 | M9 Depth | Phase 4 items | all parallel after M7 |
 
 ---
@@ -225,17 +263,17 @@ phase-gate checks pass.
 |---|---|---|---|
 | 00 sequence (this) | — | ✅ | n/a |
 | 01 workspace-tooling | 0 | ✅ | ⬜ |
-| 02 infrastructure | 0/4 | ✅ | ⬜ |
+| 02 infrastructure (+ pipeline, absorbed 08) | 0/3/4 | ✅ | ⬜ |
 | 03 core-data-model | 0 | ✅ | ⬜ |
-| 06 scene-contract | 0/4 | ⬜ | ⬜ |
-| 04 ingestion | 1 | ⬜ | ⬜ |
-| 05 benchmarks-detection | 1/4 | ⬜ | ⬜ |
-| 07 generation | 2 | ⬜ | ⬜ |
-| 09 api | 3 | ⬜ | ⬜ |
-| 10 frontend-foundation | 3 | ⬜ | ⬜ |
-| 11 frontend-article | 3/4 | ⬜ | ⬜ |
-| 12 frontend-views | 3/4 | ⬜ | ⬜ |
-| 08 pipeline | 4 | ⬜ | ⬜ |
+| 06 scene-contract | 0/4 | ✅ | ⬜ |
+| 04 ingestion | 1 | ✅ | ⬜ |
+| 05 benchmarks-detection | 1/4 | ✅ | ⬜ |
+| 07 generation | 2 | ✅ | ⬜ |
+| 09 api | 3 | ✅ | ⬜ |
+| 10 frontend-foundation | 3 | ✅ | ⬜ |
+| 11 frontend-article | 3/4 | ✅ | ⬜ |
+| 12 frontend-views | 3/4 | ✅ | ⬜ |
+| 08 pipeline → merged into Area 02 | 4 | ✅ (in 02 Epic 2.5) | ⬜ |
 
 ---
 

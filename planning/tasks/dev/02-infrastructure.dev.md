@@ -1,10 +1,12 @@
 # 02 — Infrastructure (dev plan)
 
-Spec: [`../02-infrastructure.md`](../02-infrastructure.md) | Idea refs:
+Spec: [`../02-infrastructure.md`](../02-infrastructure.md) **+
+[`../08-pipeline.md`](../08-pipeline.md) (Area 08 absorbed)** | Idea refs:
 `../../idea/01-architecture.md`, `../../idea/07-pipeline.md`,
 `../../platform.md`
-Phase: 0 (CDK skeleton) + 4 (Step Functions/EventBridge) | Depends on: 01 |
-Blocks: 09 (API), 10 (`deploy:fe`), 08 (pipeline enable)
+Phase: 0 (CDK skeleton) + 3 (API enable) + 4 (Step Functions/EventBridge +
+pipeline orchestration — absorbed Area 08) | Depends on: 01 |
+Blocks: 09 (API), 10 (`deploy:fe`)
 Prereqs (`00-sequence.dev.md` §2): **AWS account + `cdk bootstrap`
 (Phase 0 BLOCKER)** + creds; region pinned; Node 20 + pnpm; Area 01 root
 configs (`tsconfig.base.json`, `eslint.config.mjs`, `.gitignore`) and
@@ -12,6 +14,14 @@ configs (`tsconfig.base.json`, `eslint.config.mjs`, `.gitignore`) and
 
 ## Structure & decisions
 
+- **Area 08 merged into Area 02** (project-owner decision: *"area 2 develop
+  everything of area 2 and 8, remove this area"*). There is **no
+  `08-pipeline.dev.md`**; `../08-pipeline.md` remains the source-of-truth spec
+  (untouched) and is **fulfilled here** — Epic 2.3 builds the pipeline CDK,
+  **Epic 2.5 (new)** absorbs Area 08's enablement + audio-S3 glue +
+  resilience/toggle/idempotency validation + e2e/bulk runbook. Keeps the
+  per-folder model intact (pipeline is entirely `infrastructure/` over the
+  proven `backend` stages).
 - **Handlers live in `backend/src/handlers/`** (thin adapters: parse event →
   call a `backend` stage → write result), using **type-only** `aws-lambda`
   imports. No runtime AWS SDK in `backend` — the Area-01 purity grep
@@ -25,10 +35,12 @@ configs (`tsconfig.base.json`, `eslint.config.mjs`, `.gitignore`) and
   hackathon demo only (see Risks).
 - **Single stack** in the single CDK app; region default `us-east-1`
   (override via `CDK_DEFAULT_REGION`); account from CLI creds.
-- Epic phases: **2.1 = Phase 0**, 2.2 = Phase 3 enable, 2.3 = Phase 4,
-  2.4 = deploy ergonomics (README at Phase 0; `deploy:fe` once `frontend/`
-  exists). Only 2.1 (+ the 2.4 README) is built in Phase 0; 2.2/2.3 *Verify*
-  steps are gated to their phase — do not run early.
+- Epic phases: **2.1 = Phase 0**, 2.2 = Phase 3 enable, 2.3 = Phase 4
+  (pipeline CDK construction), 2.4 = deploy ergonomics (README at Phase 0;
+  `deploy:fe` once `frontend/` exists), **2.5 = Phase 4 (absorbed Area 08:
+  enable + audio glue + resilience/toggle/e2e validation)**. Only 2.1 (+ the
+  2.4 README) is built in Phase 0; 2.2 = Phase 3; 2.3/2.5 *Verify* steps are
+  gated to Phase 4 — do not run early.
 
 ---
 
@@ -124,7 +136,8 @@ Steps:
    `../backend/src/handlers/<stage>.ts`. Choice gates read the SSM toggle
    params; `RankAndCluster` reads `MAX_INVESTIGATIONS_PER_RUN`.
 3. `aws-events` `Rule`: `schedule: cron(0 6 2 * ? *)` (day 2, 06:00 UTC),
-   **`enabled: false`** (an SSM/context flag flipped by Area 08 enables it);
+   **`enabled: false`** (an SSM/context flag flipped in **Epic 2.5** —
+   Area 08 absorbed — enables it);
    target = the state machine; input `{year,month,flags}` (latest month,
    default flags).
 4. Least-privilege task roles: read the 3 Secrets + SSM params; `GenerateAudio`
@@ -137,9 +150,9 @@ Verify (spec *Done:*):
   machine; `aws stepfunctions start-execution --input '{"year":2026,
   "month":5,"flags":{}}'` validates (Phase 4).
 - *"rule present & enabled; target = state machine; cron documented"* → rule
-  exists with the cron; created **disabled** here (Area 08 enables it — note
-  the deviation from the spec wording, intentional per `00-sequence.md`
-  Phase 0 "EventBridge disabled until 08").
+  exists with the cron; created **disabled** here and **enabled in Epic 2.5**
+  (Area 08 absorbed) — intentional per `00-sequence.md` Phase 0 "EventBridge
+  disabled until 08".
 - *"each task Lambda runs with no AccessDenied in an end-to-end run"* →
   Phase-4 end-to-end run shows no `AccessDenied` in CloudWatch.
 
@@ -165,17 +178,74 @@ Verify (spec *Done:*):
 - *"a fresh operator can deploy following the steps"* → the README steps,
   followed top-to-bottom on a clean machine, reach a served CF URL.
 
+## Epic 2.5 — Pipeline orchestration & enablement  (Phase 4 — absorbs Area 08, spec `../08-pipeline.md` 8.1–8.4)
+
+Goal: the Epic-2.3 state machine runs end-to-end over the proven `backend`
+stages, with toggles/resilience/idempotency, the deployed audio-S3 glue, and
+the EventBridge cron **enabled**.
+
+Steps:
+1. **(8.1) Task wiring & CLI parity.** Confirm each Epic-2.3 task is a thin
+   `NodejsFunction` over the proven `backend` stage — `Map:IngestMonth`→
+   `backend/src/handlers/ingest.ts` (`ingestMonth`); `BuildBenchmarks`/
+   `RunDetection`→`backend/src/stages/{benchmarks,detect}`; `RankAndCluster`/
+   `Map:GenerateStory`/`Publish`→`backend/src/stages/{rank-and-cluster,
+   generate-story,publish}` (the finer fns Area 07 exported for Step
+   Functions). No business logic in handlers.
+2. **(8.1/7.4) Deployed `Map:GenerateAudio` S3 glue.** An
+   **`infrastructure/`-owned** Lambda (entry in `infrastructure/`, imports
+   `backend` `generateAudio` + `audioKey()` via the existing `file:../backend`
+   dep) → ElevenLabs bytes → `@aws-sdk/client-s3` `HeadObject`
+   skip-if-`{caseKey,version}` else `PutObject` to `audioBucket`. Realizes
+   Area 07's "Area 02/08 infra Lambda glue"; **`backend` stays AWS-SDK-free**.
+3. **(8.2) Stage toggles + bulk workflow.** Choice gates read the SSM toggles
+   (built in 2.3); document the **bulk-load runbook**: many
+   `INGEST_ONLY=true` runs, then one full pass (`run*=true`,
+   `INGEST_ONLY=false`).
+4. **(8.3) Resilience.** Validate ingest `Catch`→failure-collector (poisoned
+   month skipped; later stages run on present data); story/audio 429
+   exponential backoff recovers, per-item failure → `pipelineRuns.errors`,
+   others continue; full-machine re-run idempotent (guarded keep-latest
+   upsert + `evidenceHash` + `audioKey` skip).
+5. **(8.4) EventBridge enablement.** Flip the Epic-2.3 rule
+   `enabled:false→true` via its SSM/context flag; safe-day
+   `cron(0 6 2 * ? *)` (day 2 06:00 UTC, cannot collide with a live session);
+   document manual `start-execution` input `{year,month,flags}`.
+
+Verify (spec `../08-pipeline.md` *Done:*):
+- *8.1* "e2e on 1–2 months → investigations + Edition + dashboardStats; no
+  business logic in handlers; parity with CLI output" → `aws stepfunctions
+  start-execution --input '{"year":2026,"month":5,"flags":{}}'` then assert
+  the three collections + diff vs a `data-integestion` CLI run of the same
+  scope.
+- *8.1/7.4* audio glue → the run writes `audio/<caseKey>/<v>/{es,en}.mp3`; a
+  re-run skips existing; `grep -rE "@aws-sdk|'aws-sdk'" backend/src` → none.
+- *8.2* "bulk workflow works" → several `INGEST_ONLY=true` executions then one
+  full pass produces the expected investigations.
+- *8.3* "poisoned month skipped; 429s recover/partial success persists;
+  re-run changes nothing when evidence unchanged" → the three runnable
+  checks.
+- *8.4* "scheduled rule visible & enabled; manual start documented; cron
+  can't collide" → `aws events list-rules` shows the rule **ENABLED** with
+  the cron; README documents the manual start + the safe-day rationale.
+
 ---
 
 ## Files created (at execution)
 
-`infrastructure/`: `package.json`, `tsconfig.json`, `cdk.json`,
-`.gitignore` (cdk.out — or rely on root), `bin/app.ts`,
-`lib/open-contract-stack.ts`, `web-placeholder/index.html`, `README.md`.
+`infrastructure/`: `package.json` (+ `@aws-sdk/client-s3` for the audio
+glue), `tsconfig.json`, `cdk.json`, `.gitignore` (cdk.out — or rely on root),
+`bin/app.ts`, `lib/open-contract-stack.ts`, `lib/pipeline.ts` (Step Functions
+state machine + EventBridge rule — Epic 2.3/2.5), `lambda/audio-glue.ts`
+(Epic 2.5: `infrastructure/`-owned `Map:GenerateAudio` task — imports
+`backend` `generateAudio`/`audioKey`, writes S3), `web-placeholder/
+index.html`, `README.md`.
 `backend/src/handlers/`: `api.ts` (Epic 2.2) and one stub per stage
 (`ingest.ts`, `benchmarks.ts`, `detect.ts`, `rank.ts`, `story.ts`,
 `audio.ts`, `publish.ts`) — thin adapters over `backend` stage fns,
-type-only `aws-lambda` import (real logic lands in Areas 04/05/07).
+type-only `aws-lambda` import (real logic lands in Areas 04/05/07). Note:
+the deployed audio S3 **write** is the `infrastructure/lambda/audio-glue.ts`
+task, **not** `backend/src/handlers/audio.ts` (backend stays AWS-SDK-free).
 
 ## Decisions locked
 
@@ -191,7 +261,17 @@ type-only `aws-lambda` import (real logic lands in Areas 04/05/07).
   values injected to Lambda **env** by CDK → `backend` reads `process.env`.
 - HTTP API + throttling (50/100, tunable); no CORS (same-origin via CF).
 - STANDARD state machine per `idea/07`; Map concurrency 3 + 429 backoff;
-  EventBridge `cron(0 6 2 * ? *)` created **disabled**, enabled by Area 08.
+  EventBridge `cron(0 6 2 * ? *)` created **disabled** (Epic 2.3), **enabled
+  in Epic 2.5**.
+- **Area 08 absorbed into Area 02** — no `08-pipeline.dev.md`;
+  `../08-pipeline.md` spec untouched, fulfilled by Epic 2.5. Each pipeline
+  task = thin Lambda over the proven `backend` stage (CLI parity, no business
+  logic). Deployed `Map:GenerateAudio` S3 write = `infrastructure/lambda/
+  audio-glue.ts` (`@aws-sdk/client-s3`; imports `backend` `generateAudio`/
+  `audioKey` via `file:../backend`); `backend` purity grep unchanged.
+  Idempotency = guarded keep-latest upsert + `evidenceHash` + `audioKey`
+  skip. Phase 4; gated on Phase 0–3 green + ElevenLabs + `cdk bootstrap`;
+  cost-guarded by `MAX_INVESTIGATIONS_PER_RUN`.
 
 ## Risks
 
@@ -205,8 +285,14 @@ type-only `aws-lambda` import (real logic lands in Areas 04/05/07).
   `../backend/src/handlers/*`; set `projectRoot`/`depsLockFilePath` to
   `../backend` so `mongodb`/`zod` bundle; `backend` must be installed/built/
   linked first.
-- **Phase split**: only Epic 2.1 (+ 2.4 README) is Phase 0; 2.2/2.3 *Verify*
-  is gated to Phases 3/4 — tagged so they are not run early.
+- **Phase split**: only Epic 2.1 (+ 2.4 README) is Phase 0; 2.2 = Phase 3;
+  2.3/2.5 *Verify* gated to Phase 4 — tagged so they are not run early.
+- **Pipeline e2e prerequisites** (Epic 2.5): needs Phase 0–3 built/deployed +
+  ElevenLabs key + Atlas + ≥1–2 months of data; the runbook gates each check
+  and bounds cost via `MAX_INVESTIGATIONS_PER_RUN`.
+- **Audio-glue boundary**: the S3 write must stay in `infrastructure/lambda/
+  audio-glue.ts` (not `backend`) — Verify includes the `backend` purity grep
+  so absorbing Area 08 doesn't leak `@aws-sdk` into `backend`.
 
 ## Verification (end-to-end runbook)
 
@@ -224,10 +310,18 @@ grep -rE "@aws-sdk|'aws-sdk'" backend/src                     # no matches
 # Phase 3
 curl -s -o /dev/null -w '%{http_code}' https://<cf>/api/health   # 200
 
-# Phase 4
+# Phase 4 — pipeline (Epic 2.3 build + Epic 2.5 absorbed Area 08)
 pnpm --dir infrastructure synth | grep -q StateMachine
-aws events list-rules | grep -q OpenContract                 # rule present
+grep -rE "@aws-sdk|'aws-sdk'" backend/src                     # none (purity)
+aws stepfunctions start-execution \
+  --input '{"year":2026,"month":5,"flags":{}}'                # e2e run
+#  → investigations + Edition + dashboardStats written; diff vs
+#    `pnpm --dir data-integestion cli generate --scope …` (CLI parity)
+aws s3 ls s3://<audioBucket>/audio/<caseKey>/                 # es/en.mp3
+#  re-run the execution → idempotent (no dup investigations; audio skipped)
+#  INGEST_ONLY=true ×N then one full pass → bulk workflow OK
+aws events list-rules | grep -A2 OpenContract                 # State: ENABLED
 ```
-All green at each phase ⇒ Area 02 satisfies its spec *Done:* criteria and
-contributes its share of the Phase 0 / 3 / 4 exit gates
-(`00-sequence.dev.md` §4).
+All green at each phase ⇒ Area 02 satisfies its spec *Done:* criteria
+**and the absorbed `../08-pipeline.md` 8.1–8.4** — contributing its share of
+the Phase 0 / 3 / 4 exit gates (`00-sequence.dev.md` §4).
