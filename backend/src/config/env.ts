@@ -24,6 +24,10 @@ const EnvSchema = z.object({
   ELEVENLABS_API_KEY: z.string().optional(),
   ELEVENLABS_VOICE_ES: z.string().optional(),
   ELEVENLABS_VOICE_EN: z.string().optional(),
+  // ElevenLabs voice_settings.speed. Valid range 0.7–1.2 (1.0 = default/fast);
+  // < 1.0 = slower, more deliberate narration. Clamped so a bad value can't
+  // corrupt every generated track.
+  ELEVENLABS_SPEED: z.coerce.number().min(0.7).max(1.2).default(0.85),
   MAX_INVESTIGATIONS_PER_RUN: z.coerce.number().int().default(20),
   // Generation prompt digest — bound the per-case evidence sent to the LLM.
   EVIDENCE_SAMPLE_PER_RULE: z.coerce.number().int().default(6),

@@ -1,6 +1,12 @@
 import type { WithId } from 'mongodb';
 import { getCollection } from '../db/collections.js';
+import { moduleLogger } from '../obs/logger.js';
 import type { Investigation } from '../schema/index.js';
+
+const log = moduleLogger('repo/investigations');
+
+/** Public list page size (Area 09 API). */
+export const INVESTIGATIONS_PAGE_SIZE = 24;
 
 export interface InvestigationFilters {
   family?: string;
@@ -75,6 +81,105 @@ export async function getDistinctFilterValues(): Promise<{
     priorities: priorities as string[],
     buyers,
   };
+}
+
+/**
+ * Area 09 public list. All filters AND-combined in one aggregation; results
+ * ordered high→low review priority, then most-recent, then largest value.
+ * `$facet` returns the page + the unpaged total in a single round trip.
+ */
+export async function listInvestigationsPaged(params: {
+  family?: string;
+  priority?: string;
+  buyer?: string;
+  minValue?: number;
+  maxValue?: number;
+  q?: string;
+  page?: number;
+  lang?: string;
+}): Promise<{
+  items: Investigation[];
+  page: number;
+  pageSize: number;
+  total: number;
+}> {
+  const col = await getCollection('investigations');
+  const pageSize = INVESTIGATIONS_PAGE_SIZE;
+  const page = params.page ?? 1;
+  const skip = (page - 1) * pageSize;
+
+  const match: Record<string, unknown> = {};
+  if (params.family) match['signalFamily'] = params.family;
+  if (params.priority) match['reviewPriority'] = params.priority;
+  if (params.buyer) match['buyer.id'] = params.buyer;
+  if (params.minValue !== undefined || params.maxValue !== undefined) {
+    const range: Record<string, number> = {};
+    if (params.minValue !== undefined) range['$gte'] = params.minValue;
+    if (params.maxValue !== undefined) range['$lte'] = params.maxValue;
+    match['totalValue'] = range;
+  }
+  if (params.q) match['$text'] = { $search: params.q };
+
+  const pipeline: Record<string, unknown>[] = [
+    { $match: match },
+    {
+      $addFields: {
+        priorityRank: {
+          $switch: {
+            branches: [
+              { case: { $eq: ['$reviewPriority', 'high'] }, then: 0 },
+              { case: { $eq: ['$reviewPriority', 'medium'] }, then: 1 },
+              { case: { $eq: ['$reviewPriority', 'low'] }, then: 2 },
+            ],
+            default: 3,
+          },
+        },
+      },
+    },
+    {
+      $facet: {
+        total: [{ $count: 'count' }],
+        items: [
+          { $sort: { priorityRank: 1, updatedAt: -1, totalValue: -1 } },
+          { $skip: skip },
+          { $limit: pageSize },
+        ],
+      },
+    },
+  ];
+
+  const [result] = (await col.aggregate(pipeline as never).toArray()) as Array<{
+    total: Array<{ count: number }>;
+    items: Investigation[];
+  }>;
+  const items = result?.items ?? [];
+  const total = result?.total[0]?.count ?? 0;
+  log(
+    `query=listPaged page=${page} pageSize=${pageSize} returned=${items.length} total=${total}`,
+  );
+  return { items, page, pageSize, total };
+}
+
+/** Min/max `totalValue` across all investigations (filter slider bounds). */
+export async function getInvestigationValueBounds(): Promise<{
+  min: number;
+  max: number;
+}> {
+  const col = await getCollection('investigations');
+  const [agg] = (await col
+    .aggregate([
+      {
+        $group: {
+          _id: null,
+          min: { $min: '$totalValue' },
+          max: { $max: '$totalValue' },
+        },
+      },
+    ] as never)
+    .toArray()) as Array<{ min: number; max: number }>;
+  const bounds = { min: agg?.min ?? 0, max: agg?.max ?? 0 };
+  log(`query=valueBounds min=${bounds.min} max=${bounds.max}`);
+  return bounds;
 }
 
 export async function upsertInvestigation(doc: Investigation): Promise<void> {

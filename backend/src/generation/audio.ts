@@ -31,12 +31,14 @@ async function synthesize(
   apiKey: string,
   voiceId: string,
   script: string,
+  /** ElevenLabs voice_settings.speed (< 1.0 = slower, more deliberate). */
+  speed: number,
   /** Logging-only context (private helper — no public contract change). */
   ctx: { caseKey: string; version: number; lang: 'es' | 'en' },
 ): Promise<Buffer> {
   log(
     `synthesizing case=${ctx.caseKey} version=${ctx.version} ` +
-      `lang=${ctx.lang} voiceId=${voiceId} scriptLen=${script.length}chars`,
+      `lang=${ctx.lang} voiceId=${voiceId} speed=${speed} scriptLen=${script.length}chars`,
   );
   let lastErr: unknown;
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
@@ -51,6 +53,9 @@ async function synthesize(
         body: JSON.stringify({
           text: script,
           model_id: 'eleven_multilingual_v2',
+          // Only `speed` is overridden — the voice's saved stability/similarity
+          // settings keep their defaults. Raw fetch ⇒ snake_case wire format.
+          voice_settings: { speed },
         }),
       });
       if (res.status === 429 && attempt < RETRY_DELAYS_MS.length) {
@@ -123,12 +128,13 @@ export async function generateAudio(args: {
     throw new Error('ELEVENLABS_API_KEY is required for audio generation');
   }
 
-  const esBytes = await synthesize(apiKey, args.voices.es, args.podcast.es.script, {
+  const speed = cfg.ELEVENLABS_SPEED;
+  const esBytes = await synthesize(apiKey, args.voices.es, args.podcast.es.script, speed, {
     caseKey: args.caseKey,
     version: args.version,
     lang: 'es',
   });
-  const enBytes = await synthesize(apiKey, args.voices.en, args.podcast.en.script, {
+  const enBytes = await synthesize(apiKey, args.voices.en, args.podcast.en.script, speed, {
     caseKey: args.caseKey,
     version: args.version,
     lang: 'en',
