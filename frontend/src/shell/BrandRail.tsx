@@ -63,11 +63,14 @@ export function BrandRail() {
     >
       <NavLink
         to="/"
-        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-bg-panel"
+        className="flex items-stretch gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-bg-panel"
       >
-        <span className="block h-6 w-[2px] bg-accent-red" aria-hidden="true" />
         <span
-          className="mt-3 block font-display uppercase text-text-hi"
+          className="block w-[2px] shrink-0 self-stretch bg-accent-red"
+          aria-hidden="true"
+        />
+        <span
+          className="block font-display uppercase text-text-hi"
           style={{ fontSize: '13px', letterSpacing: '0.15em', lineHeight: 1.25 }}
         >
           {wordmarkLines.map((line) => (
