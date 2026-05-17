@@ -57,18 +57,18 @@ describe('projectFull — no internal leak', () => {
     expect(dto.supplier.id).toBe(companyDoc.supplier.id);
   });
 
-  it('lang=en selects EN story fields', () => {
+  it('lang=en selects EN story fields (audio stays bilingual)', () => {
     const dto = projectFull(companyDoc, 'en');
     expect(dto.story['theCase']).toBe(companyDoc.en.theCase);
     expect(dto.headline.headline).toBe(companyDoc.en.cover.headline);
-    expect(dto.audio).toBe(companyDoc.audio?.en);
+    expect(dto.audio).toEqual(companyDoc.audio);
   });
 
-  it('lang=es selects ES story fields', () => {
+  it('lang=es selects ES story fields (audio stays bilingual)', () => {
     const dto = projectFull(companyDoc, 'es');
     expect(dto.story['elCaso']).toBe(companyDoc.es.elCaso);
     expect(dto.headline.headline).toBe(companyDoc.es.cover.headline);
-    expect(dto.audio).toBe(companyDoc.audio?.es);
+    expect(dto.audio).toEqual(companyDoc.audio);
   });
 
   it('omits audio when the doc has none', () => {
@@ -76,14 +76,14 @@ describe('projectFull — no internal leak', () => {
     expect('audio' in dto).toBe(false);
   });
 
-  it('populates audio + podcastCuePoints for the requested lang', () => {
+  it('ships bilingual audio + podcastCuePoints regardless of lang', () => {
     const es = projectFull(companyDoc, 'es');
-    expect(es.audio).toBe(companyDoc.audio?.es);
-    expect(es.podcastCuePoints).toEqual(companyDoc.podcastCuePoints?.es);
+    expect(es.audio).toEqual(companyDoc.audio);
+    expect(es.podcastCuePoints).toEqual(companyDoc.podcastCuePoints);
 
     const en = projectFull(companyDoc, 'en');
-    expect(en.audio).toBe(companyDoc.audio?.en);
-    expect(en.podcastCuePoints).toEqual(companyDoc.podcastCuePoints?.en);
+    expect(en.audio).toEqual(companyDoc.audio);
+    expect(en.podcastCuePoints).toEqual(companyDoc.podcastCuePoints);
   });
 });
 

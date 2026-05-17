@@ -91,10 +91,9 @@ export function projectFull(
   doc: Investigation,
   lang: Lang,
 ): InvestigationFull {
+  // Story stays lang-resolved (default `es`); audio + cue points ship
+  // bilingual so the SPA can switch tracks client-side with no re-fetch.
   const story = lang === 'en' ? doc.en : doc.es;
-  const audioUrl = lang === 'en' ? doc.audio?.en : doc.audio?.es;
-  const cuePoints =
-    lang === 'en' ? doc.podcastCuePoints?.en : doc.podcastCuePoints?.es;
 
   const result: InvestigationFull = {
     ...projectListItemBase(doc, lang),
@@ -103,8 +102,10 @@ export function projectFull(
     scenePlan: doc.scenePlan as Record<string, unknown>,
     evidence: doc.evidence,
     updatedAt: doc.updatedAt,
-    ...(audioUrl ? { audio: audioUrl } : {}),
-    ...(cuePoints ? { podcastCuePoints: cuePoints } : {}),
+    ...(doc.audio ? { audio: doc.audio } : {}),
+    ...(doc.podcastCuePoints
+      ? { podcastCuePoints: doc.podcastCuePoints }
+      : {}),
   };
   assertNoLeak(result);
   return result;

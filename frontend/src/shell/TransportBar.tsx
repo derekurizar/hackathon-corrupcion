@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { m } from 'framer-motion';
 import { useMode, type NavMode } from './ModeContext';
@@ -46,6 +46,13 @@ export function TransportBar({ onExportPdf, pdfDisabled }: TransportBarProps) {
   const { enabled: ambientOn, toggle: toggleAmbient } = useAmbientAudio();
   const [playing, setPlaying] = useState(false);
 
+  // Reflect the audio element's true state (also driven by the LISTEN player),
+  // so the two play/pause controls never desync.
+  useEffect(() => {
+    if (!audioController) return;
+    return audioController.onPlayState(setPlaying);
+  }, [audioController]);
+
   const articleSelected = activeChapter !== null;
   const pct = Math.round(progress * 100);
 
@@ -55,21 +62,17 @@ export function TransportBar({ onExportPdf, pdfDisabled }: TransportBarProps) {
 
   const togglePlay = () => {
     if (!audioController) return;
-    if (playing) {
-      audioController.pause();
-      setPlaying(false);
-    } else {
-      void audioController.play();
-      setPlaying(true);
-    }
+    // State settles via the `onPlayState` subscription above.
+    if (playing) audioController.pause();
+    else void audioController.play();
   };
 
   return (
     <div className="flex h-full items-center gap-4 border-t border-line bg-bg-panel px-4">
-      {/* Zone 1 — progress / scrubber + chapter ticks (only with an article;
-          otherwise a flex spacer keeps the controls pinned right). */}
-      {/* TODO(P4): podcast cue-point scrubbing (seek on tick / drag) */}
-      {!articleSelected ? (
+      {/* Zone 1 — progress / scrubber + chapter ticks (only with an article in
+          a scrolling mode; LISTEN's player owns its own scrubber/cues).
+          Otherwise a flex spacer keeps the controls pinned right. */}
+      {!articleSelected || mode === 'podcast' ? (
         <div className="flex-1" aria-hidden="true" />
       ) : (
         <div className="flex flex-1 flex-col gap-1.5">

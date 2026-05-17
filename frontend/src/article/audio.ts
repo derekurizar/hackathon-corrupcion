@@ -4,7 +4,9 @@
  * no `@aws-sdk`. Tight word-level sync is an explicit non-goal — `onTime`
  * drives best-effort per-chapter cue advancement only.
  *
- * TODO(P4): per-language audio track when API exposes `audio.{es,en}`.
+ * The API now exposes `audio.{es,en}`; callers pick the language track and
+ * call `setTrack`. `onDuration`/`onPlayState` let the LISTEN player and the
+ * TransportBar reflect true element state without each owning an `<audio>`.
  */
 export type AudioController = {
   setTrack: (url: string) => void;
@@ -13,6 +15,10 @@ export type AudioController = {
   seek: (t: number) => void;
   /** Subscribe to `timeupdate` (seconds). Returns a cleanup fn. */
   onTime: (cb: (t: number) => void) => () => void;
+  /** Subscribe to track duration (seconds; may emit `NaN`/`0` before load). */
+  onDuration: (cb: (d: number) => void) => () => void;
+  /** Subscribe to play/pause/ended → boolean `playing`. */
+  onPlayState: (cb: (playing: boolean) => void) => () => void;
   dispose: () => void;
 };
 
@@ -27,6 +33,24 @@ export function createAudioController(): AudioController {
     for (const cb of timeListeners) cb(t);
   };
   el.addEventListener('timeupdate', handleTimeUpdate);
+
+  const durationListeners = new Set<(d: number) => void>();
+  const emitDuration = (): void => {
+    const d = el.duration;
+    for (const cb of durationListeners) cb(d);
+  };
+  el.addEventListener('loadedmetadata', emitDuration);
+  el.addEventListener('durationchange', emitDuration);
+
+  const playStateListeners = new Set<(playing: boolean) => void>();
+  const emitPlayState = (playing: boolean) => (): void => {
+    for (const cb of playStateListeners) cb(playing);
+  };
+  const handlePlay = emitPlayState(true);
+  const handlePause = emitPlayState(false);
+  el.addEventListener('play', handlePlay);
+  el.addEventListener('pause', handlePause);
+  el.addEventListener('ended', handlePause);
 
   return {
     setTrack(url: string) {
@@ -62,10 +86,34 @@ export function createAudioController(): AudioController {
       };
     },
 
+    onDuration(cb: (d: number) => void) {
+      durationListeners.add(cb);
+      // Emit immediately if metadata is already loaded (late subscribers).
+      if (Number.isFinite(el.duration) && el.duration > 0) cb(el.duration);
+      return () => {
+        durationListeners.delete(cb);
+      };
+    },
+
+    onPlayState(cb: (playing: boolean) => void) {
+      playStateListeners.add(cb);
+      cb(!el.paused);
+      return () => {
+        playStateListeners.delete(cb);
+      };
+    },
+
     dispose() {
       el.pause();
       el.removeEventListener('timeupdate', handleTimeUpdate);
+      el.removeEventListener('loadedmetadata', emitDuration);
+      el.removeEventListener('durationchange', emitDuration);
+      el.removeEventListener('play', handlePlay);
+      el.removeEventListener('pause', handlePause);
+      el.removeEventListener('ended', handlePause);
       timeListeners.clear();
+      durationListeners.clear();
+      playStateListeners.clear();
       el.removeAttribute('src');
       el.load();
       currentUrl = null;

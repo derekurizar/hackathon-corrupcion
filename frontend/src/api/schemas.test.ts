@@ -45,20 +45,27 @@ describe('InvestigationListResponseSchema', () => {
 });
 
 describe('InvestigationFullSchema', () => {
-  it('accepts an s3:// audio URI (NOT .url())', () => {
+  it('accepts bilingual audio with non-.url() values (s3:// / site-relative)', () => {
     const full = {
       ...validListItem,
       ruleIds: ['18'],
       story: { elCaso: 'x' },
       scenePlan: { cover: { sceneId: 'CoverHeadline' } },
       evidence: [{ field: 'amount', value: 1 }],
-      audio: 's3://bucket/audio/es/GT-2024-001.mp3',
-      podcastCuePoints: [{ chapter: 'cover', t: 0 }],
+      audio: {
+        es: 's3://bucket/audio/es/GT-2024-001.mp3',
+        en: '/audio/GT-2024-001/1/en.mp3',
+      },
+      podcastCuePoints: {
+        es: [{ chapter: 'cover', tSec: 0 }],
+        en: [{ chapter: 'cover', tSec: 0 }],
+      },
       updatedAt: '2026-05-16T00:00:00Z',
     };
-    expect(InvestigationFullSchema.parse(full).audio).toBe(
-      's3://bucket/audio/es/GT-2024-001.mp3',
-    );
+    const parsed = InvestigationFullSchema.parse(full);
+    expect(parsed.audio?.es).toBe('s3://bucket/audio/es/GT-2024-001.mp3');
+    expect(parsed.audio?.en).toBe('/audio/GT-2024-001/1/en.mp3');
+    expect(parsed.podcastCuePoints?.en[0]?.tSec).toBe(0);
   });
 
   it('allows audio to be omitted', () => {

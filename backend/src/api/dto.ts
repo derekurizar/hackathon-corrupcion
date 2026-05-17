@@ -24,6 +24,16 @@ export const SupplierPublicSchema = z.object({
 
 const BuyerPublicSchema = z.object({ id: z.string(), name: z.string() });
 
+// Podcast chapter marker (mirrors the stored `CuePointSchema`).
+const CuePointSchema = z.object({ chapter: z.string(), tSec: z.number() });
+// Bilingual media: both language tracks are shipped so the SPA can switch
+// client-side (by `i18n` language) with no re-fetch.
+const BilingualAudioSchema = z.object({ es: z.string(), en: z.string() });
+const BilingualCuePointsSchema = z.object({
+  es: z.array(CuePointSchema),
+  en: z.array(CuePointSchema),
+});
+
 export const InvestigationListItemSchema = z.object({
   caseKey: z.string(),
   buyer: BuyerPublicSchema,
@@ -44,9 +54,10 @@ export const InvestigationFullSchema = InvestigationListItemSchema.extend({
   story: z.record(z.string(), z.unknown()),
   scenePlan: z.record(z.string(), z.unknown()),
   evidence: z.array(z.unknown()),
-  // Lang-resolved audio URL — site-relative CloudFront path (e.g. /audio/<case>/<v>/es.mp3).
-  audio: z.string().optional(),
-  podcastCuePoints: z.array(z.unknown()).optional(),
+  // Bilingual audio — site-relative CloudFront paths (e.g. /audio/<case>/<v>/{es,en}.mp3).
+  // The SPA resolves these to absolute CDN URLs and picks the track by language.
+  audio: BilingualAudioSchema.optional(),
+  podcastCuePoints: BilingualCuePointsSchema.optional(),
   updatedAt: z.string(),
 });
 

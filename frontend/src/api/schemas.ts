@@ -1,9 +1,10 @@
 // MIRROR of backend/src/api/dto.ts (Area 09). Drift = runtime ApiContractError. No file: dep by design.
 //
-// Looser-than-backend by intent: `audio` is `z.string().optional()` (NOT
-// `.url()`) because the API may emit `s3://` URIs which fail Zod's URL check.
-// `scenePlan` stays `z.record(z.string(), z.unknown())` — Area 11 owns the
-// typed scene-contract parse, not this transport layer.
+// Looser-than-backend by intent: bilingual `audio` values are plain
+// `z.string()` (NOT `.url()`) — site-relative `/audio/…` or `s3://` are both
+// valid; the SPA absolutizes them at play time. `scenePlan` stays
+// `z.record(z.string(), z.unknown())` — Area 11 owns the typed scene-contract
+// parse, not this transport layer.
 import { z } from 'zod';
 
 const HeadlineSchema = z.object({
@@ -21,6 +22,20 @@ export const SupplierPublicSchema = z.object({
 });
 
 const BuyerPublicSchema = z.object({ id: z.string(), name: z.string() });
+
+// Podcast chapter marker (mirrors backend `CuePointSchema`).
+export const CuePointSchema = z.object({
+  chapter: z.string(),
+  tSec: z.number(),
+});
+// Bilingual media — both tracks ship so the SPA switches client-side by
+// language with no re-fetch. Values are NOT `.url()`: site-relative `/audio/…`
+// (resolved to an absolute CDN url at play time) or `s3://` are both valid.
+const BilingualAudioSchema = z.object({ es: z.string(), en: z.string() });
+const BilingualCuePointsSchema = z.object({
+  es: z.array(CuePointSchema),
+  en: z.array(CuePointSchema),
+});
 
 export const InvestigationListItemSchema = z.object({
   caseKey: z.string(),
@@ -47,9 +62,8 @@ export const InvestigationFullSchema = InvestigationListItemSchema.extend({
   story: z.record(z.string(), z.unknown()),
   scenePlan: z.record(z.string(), z.unknown()),
   evidence: z.array(z.unknown()),
-  // NOT `.url()`: s3:// URIs are valid here.
-  audio: z.string().optional(),
-  podcastCuePoints: z.array(z.unknown()).optional(),
+  audio: BilingualAudioSchema.optional(),
+  podcastCuePoints: BilingualCuePointsSchema.optional(),
   updatedAt: z.string(),
 });
 
@@ -93,6 +107,7 @@ export const FiltersDTOSchema = z.object({
   valueBounds: z.object({ min: z.number(), max: z.number() }),
 });
 
+export type CuePoint = z.infer<typeof CuePointSchema>;
 export type SupplierPublic = z.infer<typeof SupplierPublicSchema>;
 export type InvestigationListItem = z.infer<typeof InvestigationListItemSchema>;
 export type InvestigationListResponse = z.infer<typeof InvestigationListResponseSchema>;

@@ -9,6 +9,8 @@ import { useMode } from '@/shell/ModeContext';
 import { createAudioController } from './audio';
 import { usePresentationPlayback } from './usePresentationPlayback';
 import { ChapterSlot } from './ChapterSlot';
+import { PodcastPlayer } from './PodcastPlayer';
+import { resolveMediaUrl } from '@/api/media';
 import Loader from '@/ui/Loader';
 
 /** The constant chapter spine (idea/05) — order is fixed. */
@@ -85,14 +87,28 @@ export function ArticleShell() {
     };
   }, [setAudioController]);
 
-  // CRITICAL: `data.audio` is a single `string | undefined` (NOT per-lang).
-  // P3 ships one track. TODO(P4): per-language audio track when API exposes
-  // `audio.{es,en}` — re-set on `i18n.language` change.
+  // Bilingual audio: pick the current-language track and absolutize the
+  // site-relative `/audio/…` path (so it works in local dev / off-CDN hosts).
+  const lang = i18n.resolvedLanguage === 'en' ? 'en' : 'es';
+  const track = data?.audio ? resolveMediaUrl(data.audio[lang]) : undefined;
+
+  // Mirror true play state so a language swap can resume if it was playing.
+  const wasPlayingRef = useRef(false);
   useEffect(() => {
-    if (data?.audio && audioController) {
-      audioController.setTrack(data.audio);
-    }
-  }, [data?.audio, audioController, i18n.language]);
+    if (!audioController) return;
+    return audioController.onPlayState((p) => {
+      wasPlayingRef.current = p;
+    });
+  }, [audioController]);
+
+  // Re-set the track on language toggle (no re-fetch). `setTrack` no-ops on an
+  // unchanged URL; a real change reloads, so resume if it was playing.
+  useEffect(() => {
+    if (!track || !audioController) return;
+    const resume = wasPlayingRef.current;
+    audioController.setTrack(track);
+    if (resume) void audioController.play();
+  }, [track, audioController]);
 
   // Active-chapter tracking via IntersectionObserver (simpler than scroll
   // math, no layout thrash). We watch a thin band in the vertical center of
@@ -176,6 +192,9 @@ export function ArticleShell() {
 
   if (isLoading) return <ArticleLoadingState />;
   if (error || !data) return <ArticleErrorState />;
+
+  // LISTEN mode swaps the cinematic article for the dedicated audio player.
+  if (mode === 'podcast') return <PodcastPlayer data={data} />;
 
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto">

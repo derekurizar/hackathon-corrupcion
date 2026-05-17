@@ -31,7 +31,7 @@ describe('investigation handler', () => {
     expect(body.caseKey).toBe(caseKey);
     expect(body.scenePlan).toBeDefined();
     expect(Array.isArray(body.evidence)).toBe(true);
-    expect(body.audio).toBe(validInvestigationWithAudio.audio?.es);
+    expect(body.audio).toEqual(validInvestigationWithAudio.audio);
     expect('signalIds' in body).toBe(false);
     expect('evidenceHash' in body).toBe(false);
   });
@@ -41,7 +41,7 @@ describe('investigation handler', () => {
     const r = await handler(evt(caseKey, { lang: 'en' }));
     const body = JSON.parse((r as { body: string }).body);
     expect(body.story.theCase).toBe(validInvestigationWithAudio.en.theCase);
-    expect(body.audio).toBe(validInvestigationWithAudio.audio?.en);
+    expect(body.audio).toEqual(validInvestigationWithAudio.audio);
   });
 
   it('404 with error envelope for an unknown caseKey', async () => {
