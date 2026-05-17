@@ -86,6 +86,55 @@ describe.each(chapters)('deriveFromEvidence(%s)', (chapter) => {
   });
 });
 
+describe('deriveFromEvidence(elCaso) — human-readable facts', () => {
+  it('renders facts with Spanish labels and formatted currency, never raw dot-notation', () => {
+    const params = deriveFromEvidence('elCaso', signals, evidence, investigation);
+    const facts = params['facts'] as Array<{ text: string }>;
+    const texts = facts.map((f) => f.text);
+
+    // No raw OCDS dot-notation leaks to the reader.
+    for (const t of texts) {
+      expect(t).not.toMatch(/^[a-z]+(?:\[\])?\.[a-z]/);
+      expect(t).not.toContain('bidCounts.count');
+      expect(t).not.toContain('awards.value.amount');
+    }
+
+    // 'bidCounts.count' is unknown. No lowercase "prefix." precedes the
+    // camelCase, so nothing is stripped; the camelCase split + Title case
+    // yields "Bid Counts.count".
+    expect(texts).toContain('Bid Counts.count: 1');
+    // 'awards.value.amount' is unknown but monetary (contains "amount") → the
+    // sanitized fallback strips only the first "awards." segment, leaving
+    // "Value.amount", and the value is es-GT currency-formatted (no decimals).
+    const moneyFact = texts.find((t) => t.startsWith('Value.amount:'));
+    expect(moneyFact).toBeDefined();
+    // Separator-agnostic: the digits round-trip to 650000 (no decimals)...
+    expect(moneyFact!.replace(/\D/g, '')).toBe('650000');
+    // ...and the value was *formatted* (currency symbol / grouping inserted),
+    // not the raw number that the old buggy code emitted.
+    expect(moneyFact).not.toBe('Value.amount: 650000');
+  });
+
+  it('guards undefined evidence values to an em dash', () => {
+    const params = deriveFromEvidence(
+      'elCaso',
+      [
+        {
+          rule_id: 'single_bidder',
+          ocid: 'ocds-abc-002',
+          family: 'F1',
+          severity: 'low',
+          evidence: [{ field: 'tender.procurementMethodDetails', value: undefined }],
+        },
+      ],
+      [],
+      investigation,
+    );
+    const facts = params['facts'] as Array<{ text: string }>;
+    expect(facts[0]!.text).toBe('Método de contratación: —');
+  });
+});
+
 describe('deriveFromEvidence — never throws on empty inputs', () => {
   const empty: SceneInvestigation = {
     buyer: { id: '', name: '' },

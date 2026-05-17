@@ -1,6 +1,7 @@
 import type { Chapter, SceneSignal, SceneEvidenceItem, SceneInvestigation } from './types.js';
 import { flattenCaseEvidence } from './refs.js';
 import { formatBenchmark } from './benchmark.js';
+import { humanField } from './fieldLabels.js';
 
 /**
  * The mandatory non-empty caveat (idea/05 validator rule 5). Fixed,
@@ -15,6 +16,37 @@ function firstNumber(items: SceneEvidenceItem[]): number {
     if (typeof e.value === 'number' && Number.isFinite(e.value)) return e.value;
   }
   return 0;
+}
+
+/** True for evidence fields whose value is a monetary amount. */
+function isMonetaryField(field: string): boolean {
+  return /amount/i.test(field) || /value\.amount/i.test(field);
+}
+
+/**
+ * Renders one evidence item as a human-readable `"<label>: <value>"` fact for
+ * the elCaso fallback. Never throws: undefined values degrade to "—", and a
+ * failed currency format degrades to the raw stringified number.
+ */
+export function formatFact(e: SceneEvidenceItem, currency: string): string {
+  const label = humanField(e.field);
+  let valueText: string;
+  if (e.value == null) {
+    valueText = '—';
+  } else if (typeof e.value === 'number' && isMonetaryField(e.field)) {
+    try {
+      valueText = new Intl.NumberFormat('es-GT', {
+        style: 'currency',
+        currency: currency || 'GTQ',
+        maximumFractionDigits: 0,
+      }).format(Number(e.value));
+    } catch {
+      valueText = String(e.value);
+    }
+  } else {
+    valueText = String(e.value);
+  }
+  return `${label}: ${valueText}`;
 }
 
 /**
@@ -60,7 +92,7 @@ export function deriveFromEvidence(
 
     case 'elCaso': {
       const facts = flat.slice(0, 3).map((e) => ({
-        text: `${e.field}: ${String(e.value)}`,
+        text: formatFact(e, investigation.currency),
       }));
       return {
         lead: `${investigation.buyer.name}: ${PLACEHOLDER_ES}`,
