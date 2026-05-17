@@ -71,7 +71,12 @@ export const validInvestigation: Investigation = {
 export const validInvestigationWithAudio: Investigation = {
   ...validInvestigation,
   _id: 'b4e2dac9c3e5678901bcdef02345678901bcdef02345678901bcdef023456789',
-  audio: { es: 's3://bucket/es.mp3', en: 's3://bucket/en.mp3' },
+  // Site-relative CloudFront path — the on-write format produced by the CLI
+  // (`/${audioKey(caseKey, version, lang)}`).
+  audio: {
+    es: '/audio/b4e2dac9c3e5678901bcdef02345678901bcdef02345678901bcdef023456789/1/es.mp3',
+    en: '/audio/b4e2dac9c3e5678901bcdef02345678901bcdef02345678901bcdef023456789/1/en.mp3',
+  },
   podcastCuePoints: {
     es: [{ chapter: 'El caso', tSec: 0 }],
     en: [{ chapter: 'The case', tSec: 0 }],

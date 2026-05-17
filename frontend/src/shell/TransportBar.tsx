@@ -41,6 +41,7 @@ export function TransportBar({ onExportPdf, pdfDisabled }: TransportBarProps) {
     scrollToChapter,
     presentationPlaying,
     togglePresentation,
+    startPresentation,
   } = useArticleState();
   const { enabled: ambientOn, toggle: toggleAmbient } = useAmbientAudio();
   const [playing, setPlaying] = useState(false);
@@ -117,8 +118,10 @@ export function TransportBar({ onExportPdf, pdfDisabled }: TransportBarProps) {
         </div>
       )}
 
-      {/* Play/pause — Podcast transport (only when audio is registered) */}
-      {audioController && (
+      {/* Play/pause — Podcast transport (only in ESCUCHAR mode; the audio
+          controller is created for the whole article lifetime, so gate on the
+          mode too — otherwise it doubles up with the VER play/pause button). */}
+      {audioController && mode === 'podcast' && (
         <m.button
           type="button"
           onClick={togglePlay}
@@ -213,7 +216,13 @@ export function TransportBar({ onExportPdf, pdfDisabled }: TransportBarProps) {
                 key={m2}
                 type="button"
                 aria-pressed={active}
-                onClick={() => setMode(m2)}
+                onClick={() => {
+                  setMode(m2);
+                  // VER always (re)starts from the cover — even when
+                  // presentation mode is already selected (mode is unchanged
+                  // then, so this is what actually kicks off playback).
+                  if (m2 === 'presentation') startPresentation();
+                }}
                 className={cn(
                   'h-8 min-w-[72px] rounded-sm border px-3 font-body text-[10px] uppercase tracking-label transition-colors',
                   active

@@ -60,13 +60,20 @@ function MethodTick({
 export default function MethodBreakdownChart({ methodBreakdown }: Props) {
   const { t, i18n } = useTranslation();
 
-  const data = useMemo(
-    () =>
-      Object.entries(methodBreakdown)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value),
-    [methodBreakdown],
-  );
+  // Top 7 methods + a single trailing "Others" bucket for the long tail. The
+  // bucket sums the rest so the total punchline below stays the full count.
+  // Skip bucketing at <= 8 so we never hide a single method behind "Others".
+  const data = useMemo(() => {
+    const sorted = Object.entries(methodBreakdown)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+    if (sorted.length <= 8) return sorted;
+    const restValue = sorted.slice(7).reduce((s, d) => s + d.value, 0);
+    return [
+      ...sorted.slice(0, 7),
+      { name: t('dashboard.chart.methods.other'), value: restValue },
+    ];
+  }, [methodBreakdown, t]);
 
   const total = useMemo(
     () => data.reduce((sum, d) => sum + d.value, 0),
@@ -94,6 +101,11 @@ export default function MethodBreakdownChart({ methodBreakdown }: Props) {
   const gutter = Math.round(Math.min(300, Math.max(120, chartW * 0.42)));
   const labelMax = Math.max(10, Math.floor((gutter - TICK_INSET) / PX_PER_CHAR));
 
+  // Grow the chart with the bar count so every bar gets a visible y-axis
+  // label instead of Recharts skipping ticks to fit a fixed 280px box.
+  const ROW_H = 40;
+  const chartHeight = Math.max(280, data.length * ROW_H + 28);
+
   if (data.length === 0) {
     return (
       <div className="flex h-[280px] items-center justify-center">
@@ -119,9 +131,9 @@ export default function MethodBreakdownChart({ methodBreakdown }: Props) {
             a single time at final geometry — re-rendering Recharts with a
             changed YAxis width mid-mount leaves the bar paths stuck empty. */}
         {chartW === 0 ? (
-          <div style={{ height: 280 }} />
+          <div style={{ height: chartHeight }} />
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart layout="vertical" data={data}>
             <XAxis
               type="number"
@@ -134,6 +146,7 @@ export default function MethodBreakdownChart({ methodBreakdown }: Props) {
               type="category"
               dataKey="name"
               width={gutter}
+              interval={0}
               tick={(props) => <MethodTick {...props} max={labelMax} />}
               axisLine={false}
               tickLine={false}

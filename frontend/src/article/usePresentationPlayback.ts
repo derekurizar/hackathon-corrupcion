@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Chapter } from '@/_scene-contract';
 import type { NavMode } from '@/shell/ModeContext';
 import { useArticleState } from './ArticleStateContext';
@@ -90,28 +90,37 @@ export function usePresentationPlayback({
     presentationPlaying,
     setPresentationPlaying,
     registerPresentationToggle,
+    registerPresentationStart,
     scrollToChapter,
   } = useArticleState();
 
   const indexRef = useRef(0);
+  // Bumped to (re)start a run — a dep of the playback effect, so a fresh start
+  // cancels any in-flight run even when `presentationPlaying` is already true
+  // (re-clicking VER mid-presentation must restart from the cover).
+  const [runId, setRunId] = useState(0);
   // Latest values readable from the long-lived toggle handler without
   // re-registering it on every render.
   const stateRef = useRef({ playing: presentationPlaying, activeChapter });
   stateRef.current = { playing: presentationPlaying, activeChapter };
 
-  // Auto-start on entering presentation mode (always from the cover);
-  // stop on leaving it. `presentationPlaying` is intentionally NOT a dep so a
-  // pause (button / reader takeover) or the natural end-of-deck stop is not
-  // immediately re-started by this effect.
+  // Stop auto-play whenever we leave presentation mode (LEER / ESCUCHAR /
+  // route change). Starting is driven explicitly by the VER button via
+  // `startPresentation`, so a re-click always restarts cleanly even though the
+  // `mode` value itself doesn't change.
   useEffect(() => {
-    if (!enabled) return;
-    if (mode === 'presentation') {
+    if (mode !== 'presentation') setPresentationPlaying(false);
+  }, [mode, setPresentationPlaying]);
+
+  // Register the VER "start / restart from the cover" action.
+  useEffect(() => {
+    registerPresentationStart(() => {
       indexRef.current = 0;
       setPresentationPlaying(true);
-    } else {
-      setPresentationPlaying(false);
-    }
-  }, [mode, enabled, setPresentationPlaying]);
+      setRunId((n) => n + 1);
+    });
+    return () => registerPresentationStart(null);
+  }, [registerPresentationStart, setPresentationPlaying]);
 
   // Register the play/pause toggle for the TransportBar.
   useEffect(() => {
@@ -131,6 +140,7 @@ export function usePresentationPlayback({
         if (ai >= 0) indexRef.current = ai;
       }
       setPresentationPlaying(true);
+      setRunId((n) => n + 1);
     });
     return () => registerPresentationToggle(null);
   }, [registerPresentationToggle, setPresentationPlaying, chapters]);
@@ -177,6 +187,7 @@ export function usePresentationPlayback({
     enabled,
     mode,
     presentationPlaying,
+    runId,
     chapters,
     scrollRef,
     scrollToChapter,

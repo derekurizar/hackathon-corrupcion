@@ -44,8 +44,8 @@ export const InvestigationFullSchema = InvestigationListItemSchema.extend({
   story: z.record(z.string(), z.unknown()),
   scenePlan: z.record(z.string(), z.unknown()),
   evidence: z.array(z.unknown()),
-  // Lang-resolved audio URL.
-  audio: z.string().url().optional(),
+  // Lang-resolved audio URL — site-relative CloudFront path (e.g. /audio/<case>/<v>/es.mp3).
+  audio: z.string().optional(),
   podcastCuePoints: z.array(z.unknown()).optional(),
   updatedAt: z.string(),
 });

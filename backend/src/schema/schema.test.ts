@@ -60,7 +60,7 @@ describe('InvestigationSchema', () => {
   });
   it('parses a valid fixture with optional audio + cue points', () => {
     const parsed = InvestigationSchema.parse(validInvestigationWithAudio);
-    expect(parsed.audio?.es).toBe('s3://bucket/es.mp3');
+    expect(parsed.audio?.es).toMatch(/^\/audio\/.+\/es\.mp3$/);
     expect(parsed.podcastCuePoints?.en[0]?.chapter).toBe('The case');
   });
   it('rejects when es story is missing a required field', () => {

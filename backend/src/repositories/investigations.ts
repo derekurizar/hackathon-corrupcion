@@ -1,7 +1,7 @@
 import type { WithId } from 'mongodb';
 import { getCollection } from '../db/collections.js';
 import { moduleLogger } from '../obs/logger.js';
-import type { Investigation } from '../schema/index.js';
+import type { CuePoint, Investigation } from '../schema/index.js';
 
 const log = moduleLogger('repo/investigations');
 
@@ -208,4 +208,32 @@ export async function upsertInvestigationGuarded(
   const col = await getCollection('investigations');
   await col.replaceOne({ _id: doc._id } as never, doc as never, { upsert: true });
   return { skipped: false };
+}
+
+/**
+ * Attaches the podcast audio URLs + cue points to an already-published
+ * investigation. Called by the data-integestion CLI only AFTER the mp3 bytes
+ * are actually in S3 (`backend` is pure and cannot know whether the upload
+ * happened or whether `AUDIO_BUCKET` was even set).
+ *
+ * The filter is intentionally `{ _id: caseKey, version }`: when the publish
+ * stage SKIPPED an unchanged case the stored `version` differs from the
+ * audio-phase `version`, so this update is a deliberate idempotent no-op
+ * (`{ matched: false }`) — it must never write an audio link that points at a
+ * different version than the document actually holds.
+ */
+export async function setInvestigationAudio(
+  caseKey: string,
+  version: number,
+  audio: { es: string; en: string },
+  podcastCuePoints: { es: CuePoint[]; en: CuePoint[] },
+): Promise<{ matched: boolean }> {
+  const col = await getCollection('investigations');
+  const r = await col.updateOne({ _id: caseKey, version } as never, {
+    $set: { audio, podcastCuePoints },
+  } as never);
+  log(
+    `setAudio caseKey=${caseKey} version=${version} matched=${r.matchedCount > 0}`,
+  );
+  return { matched: r.matchedCount > 0 };
 }

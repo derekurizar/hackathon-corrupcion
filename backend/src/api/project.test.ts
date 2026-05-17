@@ -75,6 +75,16 @@ describe('projectFull — no internal leak', () => {
     const dto = projectFull(individualDoc, 'es');
     expect('audio' in dto).toBe(false);
   });
+
+  it('populates audio + podcastCuePoints for the requested lang', () => {
+    const es = projectFull(companyDoc, 'es');
+    expect(es.audio).toBe(companyDoc.audio?.es);
+    expect(es.podcastCuePoints).toEqual(companyDoc.podcastCuePoints?.es);
+
+    const en = projectFull(companyDoc, 'en');
+    expect(en.audio).toBe(companyDoc.audio?.en);
+    expect(en.podcastCuePoints).toEqual(companyDoc.podcastCuePoints?.en);
+  });
 });
 
 describe('projectListItem', () => {

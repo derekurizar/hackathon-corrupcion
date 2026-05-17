@@ -98,6 +98,7 @@
   "dashboard.section.top": "EXPEDIENTES DESTACADOS",
   "dashboard.empty": "SIN DATOS DISPONIBLES",
   "dashboard.chart.methods.ariaLabel": "Gráfica de barras con desglose por método de contratación",
+  "dashboard.chart.methods.other": "Otros",
   "dashboard.chart.signals.ariaLabel": "Gráfica radar con señales por familia: Competencia y Método, Concentración de Proveedores, Anomalías de Precio, Fragmentación e Integridad",
   "dashboard.chart.priority.ariaLabel": "Gráfica de barras con distribución de prioridad de revisión",
   "newsroom.filters.family": "FAMILIA",

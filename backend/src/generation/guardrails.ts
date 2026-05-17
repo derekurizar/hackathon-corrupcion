@@ -14,6 +14,9 @@ function checkLabel(reason: string): string {
 
 export type GuardrailCheckResult = { ok: true } | { ok: false; reason: string };
 
+/** Result of a guarded story generation (passed/fell-back). */
+export type GuardedStoryResult = { story: ClaudeStoryRaw | null; usedFallback: boolean };
+
 /** Every string leaf in the story output, lower-cased for substring checks. */
 function collectStrings(story: ClaudeStoryRaw): string[] {
   const out: string[] = [];
@@ -108,7 +111,7 @@ export async function generateStoryGuarded(
   supplierLabelEn: string,
   rawSupplierName: string,
   entityTypeHint: 'company' | 'individual' | 'unknown',
-): Promise<{ story: ClaudeStoryRaw | null; usedFallback: boolean }> {
+): Promise<GuardedStoryResult> {
   try {
     const systemPrefix = buildSystemPrefix();
     const userBlock = buildUserBlock(bundle, supplierLabelEs, supplierLabelEn, entityTypeHint);

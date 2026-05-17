@@ -98,6 +98,7 @@
   "dashboard.section.top": "TOP INVESTIGATIONS",
   "dashboard.empty": "NO DATA AVAILABLE",
   "dashboard.chart.methods.ariaLabel": "Bar chart showing procurement method distribution",
+  "dashboard.chart.methods.other": "Other",
   "dashboard.chart.signals.ariaLabel": "Radar chart showing signals by family: Competition & Method Abuse, Supplier Concentration, Pricing Anomalies, Timing Splitting and Integrity",
   "dashboard.chart.priority.ariaLabel": "Bar chart showing review priority distribution",
   "newsroom.filters.family": "FAMILY",

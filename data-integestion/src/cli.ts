@@ -127,7 +127,7 @@ async function main() {
         break;
       }
       case 'generate': {
-        const { generate } = await import('backend');
+        const { generate, setInvestigationAudio, audioKey } = await import('backend');
         const { persistAudio } = await import('./s3-audio-adapter.js');
         const genScope = values['scope'];
         const result = await generate({
@@ -140,6 +140,24 @@ async function main() {
             log(
               `[generate] audio uploaded=${audioResult.uploaded} skipped=${audioResult.skipped}`,
             );
+            // Bytes are now truthfully in S3 — patch the investigation docs
+            // with the site-relative CloudFront audio paths + cue points.
+            if (result.audioResults && result.audioResults.length > 0) {
+              let patched = 0;
+              for (const ar of result.audioResults) {
+                const matched = await setInvestigationAudio(
+                  ar.caseKey,
+                  ar.version,
+                  {
+                    es: `/${audioKey(ar.caseKey, ar.version, 'es')}`,
+                    en: `/${audioKey(ar.caseKey, ar.version, 'en')}`,
+                  },
+                  ar.podcastCuePoints,
+                );
+                if (matched.matched === true) patched += 1;
+              }
+              log(`[generate] audio investigations patched=${patched}`);
+            }
           } else {
             log(
               '[generate] AUDIO_BUCKET not set — skipping S3 upload',

@@ -21,8 +21,8 @@ import { formatBenchmark } from '../scene-contract/benchmark.js';
 import { getByCaseKey, upsertInvestigationGuarded } from '../repositories/investigations.js';
 import { insertEdition } from '../repositories/editions.js';
 import { upsertDashboardStats } from '../repositories/dashboard-stats.js';
-import { createClaudeClient } from './claude.js';
-import { generateStoryGuarded } from './guardrails.js';
+import { createClaudeClient, type ClaudeStoryRaw } from './claude.js';
+import { generateStoryGuarded, type GuardedStoryResult } from './guardrails.js';
 import { anonymizeSupplier, type AnonymizedSupplier } from './anonymize.js';
 import { buildCaseDigest, resolveDigestConfig, type CaseDigest } from './digest.js';
 import { loadConfig } from '../config/env.js';
@@ -44,6 +44,13 @@ export interface PublishArgs {
   bundles: CaseBundle[];
   /** Passed in so we don't re-query entities per bundle. */
   entityMap: Map<string, Entity>;
+  /**
+   * Optional per-run story cache, populated by the audio phase of `generate()`.
+   * On a cache hit we skip the second Claude generation entirely (the article
+   * then shares the EXACT story — incl. fallback decision — used for audio).
+   * Absent on the standalone `publish` CLI path → every case generates normally.
+   */
+  storyCache?: Map<string, GuardedStoryResult>;
 }
 
 export interface PublishResult {
@@ -311,15 +318,24 @@ export async function publishInvestigations(args: PublishArgs): Promise<PublishR
     };
     const anon = anonymizeSupplier(supplierEntity);
 
-    if (client === null) client = createClaudeClient();
-    const { story, usedFallback } = await generateStoryGuarded(
-      client,
-      bundle,
-      anon.displayNameEs,
-      anon.displayNameEn,
-      supplierEntity.name,
-      supplierEntity.entityType,
-    );
+    const cached = args.storyCache?.get(bundle.caseKey);
+    let story: ClaudeStoryRaw | null;
+    let usedFallback: boolean;
+    if (cached) {
+      ({ story, usedFallback } = cached);
+      log(`story source=cache case=${bundle.caseKey}`);
+    } else {
+      if (client === null) client = createClaudeClient();
+      ({ story, usedFallback } = await generateStoryGuarded(
+        client,
+        bundle,
+        anon.displayNameEs,
+        anon.displayNameEn,
+        supplierEntity.name,
+        supplierEntity.entityType,
+      ));
+      log(`story source=generated case=${bundle.caseKey}`);
+    }
 
     let storyEs: StoryContentEs;
     let storyEn: StoryContentEn;
@@ -399,9 +415,13 @@ export async function publishInvestigations(args: PublishArgs): Promise<PublishR
     // re-validated. Successful fixes replace the deterministic fallback so
     // the article keeps the LLM's content. One corrective shot; on any
     // failure the deterministic fallback already in place stands.
-    if (!usedFallback && client !== null) {
+    if (!usedFallback && story !== null) {
       const zodFailures = collectSceneZodFailures(llmScenePlan, resolvedScenePlan);
       if (zodFailures.length > 0) {
+        // Lazily build the client only when a repair call is actually made
+        // (cache-hit cases reach here with `client` still null) — keeps the
+        // "no Claude client unless a Claude call happens" invariant intact.
+        if (client === null) client = createClaudeClient();
         const fixed = await client.repairScenes({
           caseKey: bundle.caseKey,
           failures: zodFailures,

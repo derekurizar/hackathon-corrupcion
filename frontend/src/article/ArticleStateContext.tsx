@@ -45,6 +45,10 @@ type ArticleState = {
   togglePresentation: () => void;
   /** ArticleShell registers the real toggle; null clears it on unmount. */
   registerPresentationToggle: (fn: (() => void) | null) => void;
+  /** Start/restart presentation auto-play from the cover (VER button). */
+  startPresentation: () => void;
+  /** ArticleShell registers the real starter; null clears it on unmount. */
+  registerPresentationStart: (fn: (() => void) | null) => void;
 };
 
 const ArticleStateContext = createContext<ArticleState | null>(null);
@@ -82,6 +86,16 @@ export function ArticleStateProvider({ children }: { children: ReactNode }) {
   const togglePresentation = useCallback(() => {
     presentationToggleRef.current?.();
   }, []);
+  const presentationStartRef = useRef<(() => void) | null>(null);
+  const registerPresentationStart = useCallback(
+    (fn: (() => void) | null) => {
+      presentationStartRef.current = fn;
+    },
+    [],
+  );
+  const startPresentation = useCallback(() => {
+    presentationStartRef.current?.();
+  }, []);
 
   const value = useMemo<ArticleState>(
     () => ({
@@ -99,6 +113,8 @@ export function ArticleStateProvider({ children }: { children: ReactNode }) {
       registerScrollToChapter,
       togglePresentation,
       registerPresentationToggle,
+      startPresentation,
+      registerPresentationStart,
     }),
     [
       activeChapter,
@@ -110,6 +126,8 @@ export function ArticleStateProvider({ children }: { children: ReactNode }) {
       registerScrollToChapter,
       togglePresentation,
       registerPresentationToggle,
+      startPresentation,
+      registerPresentationStart,
     ],
   );
 

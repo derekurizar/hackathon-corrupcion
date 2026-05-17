@@ -16,6 +16,7 @@ export type { PublishStageArgs } from './publish.js';
 export type { PublishResult } from '../generation/publish.js';
 export { generate } from './generate.js';
 export type { GenerateArgs, GenerateResult } from './generate.js';
+export type { AudioCaseResult } from './generate.js';
 export { generateAudio, audioKey } from '../generation/audio.js';
 export type { AudioItem } from '../generation/audio.js';
 export type { CaseBundle } from '../generation/rank.js';
