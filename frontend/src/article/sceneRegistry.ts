@@ -29,7 +29,13 @@ export const sceneRegistry: Record<
   EvidenceLedger: lazy(() => import('./scenes/EvidenceLedger')),
   AwardTimeline: lazy(() => import('./scenes/AwardTimeline')),
   ClosingStatement: lazy(() => import('./scenes/ClosingStatement')),
-  // TODO(P4): register VARIANT_SCENE_IDS (Epic 11.5) — CaseSplit, PriceBars,
-  // ThresholdLadder, SplittingCluster, RepeatBidders, EvidenceCompare,
-  // GapSpotlight (+ RegionMap stretch).
+  // VARIANT_SCENE_IDS (Epic 11.5) — keys are the synced `sceneId`s.
+  CaseSplit: lazy(() => import('./scenes/CaseSplit')),
+  PriceBars: lazy(() => import('./scenes/PriceBars')),
+  ThresholdLadder: lazy(() => import('./scenes/ThresholdLadder')),
+  SplittingCluster: lazy(() => import('./scenes/SplittingCluster')),
+  RepeatBidders: lazy(() => import('./scenes/RepeatBidders')),
+  EvidenceCompare: lazy(() => import('./scenes/EvidenceCompare')),
+  GapSpotlight: lazy(() => import('./scenes/GapSpotlight')),
+  RegionMap: lazy(() => import('./scenes/RegionMap')),
 };

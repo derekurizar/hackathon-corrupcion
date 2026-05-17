@@ -116,5 +116,22 @@
   "methodology.scope.label": "ANALYSIS SCOPE",
   "methodology.scope.unit": "MONTHS OF DATA",
   "methodology.caveat.label": "IMPORTANT NOTICE",
-  "placeholder.noData": "NO DATA AVAILABLE"
+  "placeholder.noData": "NO DATA AVAILABLE",
+  "article.scene.benchmark": "REF",
+  "article.scene.observed": "OBSERVED",
+  "article.scene.reference": "REFERENCE",
+  "article.scene.principalRegion": "TOP REGION",
+  "article.scene.more": "+{{count}} more",
+  "article.scene.repeatBidder.company": "COMPANY",
+  "article.scene.repeatBidder.appearances": "APPEARANCES",
+  "article.scene.repeatBidder.wins": "WINS",
+  "article.scene.repeatBidder.winRate": "WIN RATE",
+  "article.scene.column.label": "LABEL",
+  "article.scene.column.value": "VALUE",
+  "article.scene.column.region": "REGION",
+  "article.scene.column.date": "DATE",
+  "article.scene.column.band": "BAND",
+  "article.scene.column.ceiling": "CEILING",
+  "article.scene.column.flagged": "FLAGGED",
+  "article.scene.column.gapDays": "GAP DAYS"
 }

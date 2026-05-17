@@ -9,3 +9,5 @@ coverage
 .claude/agent-memory/
 
 data-integestion/logs/
+
+logs/

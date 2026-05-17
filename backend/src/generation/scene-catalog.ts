@@ -36,14 +36,18 @@ export function renderSceneCatalog(): string {
   const lines: string[] = [
     'SCENE CATALOG (static)',
     "- Set scenePlan[chapter].sceneId ONLY to a sceneId from that chapter's",
-    '  ALLOWED SCENES list in the user block. Prefer the (default) scene — the',
-    '  server backfills all its bound params, so it almost always validates.',
+    '  ALLOWED SCENES list in the user block. Choose the scene that best fits',
+    "  this case's evidence — variant scenes are first-class, not a last resort.",
     '- params kinds:',
     '  - bound: server overwrites these for the (default) scene; still emit the',
     '    field with a plausibly-typed placeholder so the shape exists.',
-    '  - quant: a number you read from an EVIDENCE item; it MUST be paired with',
-    '    its ref companion — `<key>Ref`, or a sibling `ref`, or for `<x>Value`',
-    '    the field `<x>Ref` — set to the exact `ev:<i>` whose value equals it.',
+    '  - quant: a figure you read from the DIGEST (a representative `ev:<i>`',
+    '    value, OR a per-rule rollup count/sum, OR a benchmark metric). Pair it',
+    '    with its ref companion — `<key>Ref`, or a sibling `ref`, or for',
+    '    `<x>Value` the field `<x>Ref` — set to an `ev:<i>` that SUPPORTS the',
+    '    figure. The ref must resolve (cite only an `ev:<i>` shown in the',
+    '    block); it need not equal that row’s raw value — shares, totals and',
+    '    rollups never appear as a single cell. Never invent a figure.',
     '  - a `*Ref`/`ref`/`valueRef` leaf: set it to an `ev:<i>` that resolves.',
     '  - presentational: free prose/order; keep any enum/tuple values valid.',
     "- For any 'narration', 'intro', or 'conclusions' presentational field, " +
@@ -51,7 +55,7 @@ export function renderSceneCatalog(): string {
       'why it merits review. Use precise, sober newsroom language accessible ' +
       'to non-technical readers.',
     '- Every scene-schema constraint (enums, tuple shape, array min/max) still',
-    '  applies; when unsure, use the (default) scene.',
+    "  applies; if unsure about a variant's exact schema, use the (default).",
     '',
   ];
   for (const chapter of CHAPTER_ORDER) {

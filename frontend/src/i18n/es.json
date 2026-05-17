@@ -116,5 +116,22 @@
   "methodology.scope.label": "ALCANCE DEL ANÁLISIS",
   "methodology.scope.unit": "MESES DE DATOS",
   "methodology.caveat.label": "AVISO IMPORTANTE",
-  "placeholder.noData": "SIN DATOS DISPONIBLES"
+  "placeholder.noData": "SIN DATOS DISPONIBLES",
+  "article.scene.benchmark": "REF",
+  "article.scene.observed": "OBSERVADO",
+  "article.scene.reference": "REFERENCIA",
+  "article.scene.principalRegion": "REGIÓN PRINCIPAL",
+  "article.scene.more": "+{{count}} más",
+  "article.scene.repeatBidder.company": "EMPRESA",
+  "article.scene.repeatBidder.appearances": "APARICIONES",
+  "article.scene.repeatBidder.wins": "VICTORIAS",
+  "article.scene.repeatBidder.winRate": "TASA DE VICTORIA",
+  "article.scene.column.label": "ETIQUETA",
+  "article.scene.column.value": "VALOR",
+  "article.scene.column.region": "REGIÓN",
+  "article.scene.column.date": "FECHA",
+  "article.scene.column.band": "BANDA",
+  "article.scene.column.ceiling": "TECHO",
+  "article.scene.column.flagged": "MARCADO",
+  "article.scene.column.gapDays": "DÍAS DE INTERVALO"
 }

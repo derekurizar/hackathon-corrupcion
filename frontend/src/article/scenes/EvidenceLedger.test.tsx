@@ -21,7 +21,10 @@ describe('EvidenceLedger', () => {
     );
     expect(screen.getByText(/Cuota del proveedor principal/i)).toBeInTheDocument();
     expect(screen.getByText('82%')).toBeInTheDocument();
-    expect(screen.getByText(/Casi el doble del promedio/i)).toBeInTheDocument();
+    // The component renders `itemCaptions[idx] ?? comparison`; the fixture
+    // supplies an explicit caption for row 0, so the editorial caption — not
+    // the raw `comparison` — is what reaches the reader.
+    expect(screen.getByText(/Concentración alta/i)).toBeInTheDocument();
     expect(screen.getByText('14')).toBeInTheDocument();
     expect(screen.getByText('Fixture narration for evidence ledger.')).toBeInTheDocument();
   });

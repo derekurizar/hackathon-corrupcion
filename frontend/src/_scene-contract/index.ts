@@ -16,3 +16,4 @@ export { validateScenePlan } from './validator.js';
 export { deriveFromEvidence, FIXED_CAVEAT } from './derive.js';
 export { parseRef, resolveRef, flattenCaseEvidence } from './refs.js';
 export type { ParsedRef } from './refs.js';
+export { humanField, FIELD_LABELS } from './fieldLabels.js';

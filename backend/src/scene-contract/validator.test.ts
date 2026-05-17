@@ -84,7 +84,7 @@ describe('validateScenePlan — rule 1 (sceneId not in shortlist)', () => {
   });
 });
 
-describe('validateScenePlan — rule 3 (quant ref must resolve & value-match)', () => {
+describe('validateScenePlan — rule 3 (quant ref must resolve; no value-match)', () => {
   it('falls back when the quant ref does not resolve', () => {
     const e = validCoverEntry();
     (e.params['heroStat'] as Record<string, unknown>)['ref'] = 'sig:does_not_exist';
@@ -92,11 +92,16 @@ describe('validateScenePlan — rule 3 (quant ref must resolve & value-match)', 
     expect(out.source).toBe('fallback');
   });
 
-  it('falls back when the quant value does not match the resolved ref value', () => {
+  it('accepts (source:"llm") when the quant value differs from the resolved ref row value', () => {
+    // New contract: the cited ref only needs to RESOLVE (traceability /
+    // no invented citations). The figure itself is the LLM's — legitimate
+    // numbers (shares, rollup aggregates, benchmark metrics) never appear as
+    // a single evidence cell, so a value-equality check forced a universal
+    // fallback. The figure no longer has to equal the cited row's `.value`.
     const e = validCoverEntry();
     (e.params['heroStat'] as Record<string, unknown>)['value'] = 999999;
     const out = validateScenePlan('cover', e, signals, evidence, investigation);
-    expect(out.source).toBe('fallback');
+    expect(out.source).toBe('llm');
   });
 
   it('falls back when the ref string is syntactically invalid', () => {

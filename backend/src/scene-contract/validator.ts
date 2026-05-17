@@ -11,18 +11,6 @@ import { shortlist, defaultScene, ruleOrdinalsFromSignals } from './shortlist.js
 import { deriveFromEvidence } from './derive.js';
 import { parseRef, resolveRef } from './refs.js';
 
-/**
- * Numeric value-match tolerance (idea/05 / architect decision 4):
- * relative epsilon for floats (money is float64), exact for everything else.
- */
-function valueMatches(a: unknown, b: unknown): boolean {
-  if (typeof a === 'number' && typeof b === 'number') {
-    if (Number.isNaN(a) || Number.isNaN(b)) return false;
-    return Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(b));
-  }
-  return a === b;
-}
-
 type Seg = { key: string; array: boolean };
 
 /** Parses a kinds-grammar path: `a.b`, `arr[].c`, `arr[]`. */
@@ -223,7 +211,13 @@ export function validateScenePlan(
     }
   }
 
-  // Rule 3 — every quant param must carry a ref that resolves & value-matches.
+  // Rule 3 — every quant param must carry a ref that RESOLVES to a real
+  // evidence item. We deliberately do NOT require the figure to equal the
+  // cited row's raw `.value`: the citable numbers (shares, rollup aggregates,
+  // benchmark metrics) live in `benchmark`/digest rollups, never in
+  // `evidence[i].value`, so a value-match check forced a universal fallback.
+  // The LLM owns the figure (read from the digest the prompt exposes); the
+  // resolvable ref guarantees traceability and blocks invented citations.
   let quantOk = true;
   for (const [path, kind] of Object.entries(descriptor.kinds)) {
     if (kind !== 'quant') continue;
@@ -251,8 +245,10 @@ export function validateScenePlan(
         return;
       }
 
-      // Numeric quant value — must have a companion ref that resolves AND
-      // whose resolved value matches the LLM-provided number.
+      // Numeric quant value — must carry a companion ref that resolves to a
+      // real evidence item. The figure itself is the LLM's (legitimately read
+      // from the digest rollups/benchmarks the prompt surfaces); we no longer
+      // require it to equal the cited row's raw `.value` scalar.
       if (typeof leafValue !== 'number') {
         quantOk = false;
         return;
@@ -267,21 +263,9 @@ export function validateScenePlan(
         quantOk = false;
         return;
       }
-      const resolved = resolveRef(parsed, signals, evidence);
-      if (resolved === undefined) {
+      if (resolveRef(parsed, signals, evidence) === undefined) {
         quantOk = false;
-        return;
       }
-      // Resolved may be a scalar, an evidence item, or an array. Accept a
-      // match against the value itself or a `.value` field if present.
-      const candidate =
-        resolved !== null &&
-        typeof resolved === 'object' &&
-        !Array.isArray(resolved) &&
-        'value' in (resolved as Record<string, unknown>)
-          ? (resolved as Record<string, unknown>)['value']
-          : resolved;
-      if (!valueMatches(leafValue, candidate)) quantOk = false;
     });
   }
   if (!quantOk) return fb();

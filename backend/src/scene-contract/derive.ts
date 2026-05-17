@@ -66,6 +66,27 @@ export function formatFact(e: SceneEvidenceItem, currency: string): string {
 }
 
 /**
+ * Builds a sober one-line Spanish caption for an evidence row: the humanized
+ * `"<label>: <value>"` fact, plus what made it a review signal (the
+ * `comparison`) and the comparable reference (the collapsed `benchmark`).
+ * Never throws — degrades to the bare fact. Used by the `evidencia` fallback
+ * so the ledger narrates even when the LLM path is not taken.
+ */
+export function formatEvidenceCaption(e: SceneEvidenceItem, currency: string): string {
+  const parts = [`${formatFact(e, currency)}.`];
+  if (typeof e.comparison === 'string' && e.comparison.trim().length > 0) {
+    parts.push(`Señal de revisión: ${e.comparison.trim()}.`);
+  }
+  if (e.benchmark !== undefined) {
+    const bench = formatBenchmark(e.benchmark);
+    if (bench !== undefined && bench !== null && String(bench).trim().length > 0) {
+      parts.push(`Referencia comparable: ${String(bench).trim()}.`);
+    }
+  }
+  return parts.join(' ');
+}
+
+/**
  * Builds the default scene's params for `chapter`, purely from
  * signals/evidence/investigation (no LLM). NEVER throws — missing data
  * degrades to `[]` / `0` / placeholder Spanish text. The output is always a
@@ -190,7 +211,10 @@ export function deriveFromEvidence(
           : [{ field: 'sinDato', value: PLACEHOLDER_ES }];
       return {
         items,
-        itemCaptions: items.map(() => PLACEHOLDER_ES),
+        itemCaptions:
+          flat.length > 0
+            ? flat.map((e) => formatEvidenceCaption(e, investigation.currency))
+            : [PLACEHOLDER_ES],
         order: 'original',
         narration:
           `Se detectaron ${flat.length > 0 ? flat.length : 'varias'} señales de ` +

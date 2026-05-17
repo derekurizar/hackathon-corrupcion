@@ -1,6 +1,10 @@
 import { useRef } from 'react';
 import { m, useInView, useReducedMotion } from 'framer-motion';
 import type { Chapter } from '@/_scene-contract';
+// `humanField` lives in the synced `fieldLabels` submodule; the contract
+// barrel (`index.ts`) does not re-export it, so import the submodule directly
+// rather than editing the synced/generated `_scene-contract/` surface.
+import { humanField } from '@/_scene-contract/fieldLabels';
 import type { InvestigationFull } from '@/api/schemas';
 import { cn } from '@/lib/utils';
 
@@ -113,7 +117,7 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
               )}
             >
               <div>
-                <p className="kicker">{it.field}</p>
+                <p className="kicker">{humanField(it.field)}</p>
               </div>
               <div>
                 <p className="numeric-tabular font-display text-display-lg text-text-hi">
@@ -132,7 +136,7 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
               </div>
               <div>
                 <p className="max-w-[32ch] font-body text-body-sm text-text-mid text-pretty">
-                  {it.comparison ?? caption ?? ''}
+                  {caption ?? it.comparison ?? ''}
                 </p>
               </div>
             </m.article>
