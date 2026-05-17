@@ -2,14 +2,17 @@ import { useTranslation } from 'react-i18next';
 import type { StatsDTO } from '@/api/schemas';
 import type { I18nKey } from '@/i18n/keys';
 import { useCountUp } from '@/article/scenes/useCountUp';
-import { formatInt } from '@/article/scenes/format';
+import { formatInt, formatGTQ } from '@/article/scenes/format';
 
 type Counters = StatsDTO['counters'];
 
-/** Five counter cards. Order + labels are fixed. */
-const CARDS: Array<{ key: keyof Counters; labelKey: I18nKey }> = [
+/**
+ * Five counter cards. Order + labels are fixed. `money` cards render the
+ * value as Guatemalan Quetzales (`Q…`), the rest as grouped integers.
+ */
+const CARDS: Array<{ key: keyof Counters; labelKey: I18nKey; money?: boolean }> = [
   { key: 'records', labelKey: 'dashboard.stat.records' },
-  { key: 'valueAnalyzed', labelKey: 'dashboard.stat.valueAnalyzed' },
+  { key: 'valueAnalyzed', labelKey: 'dashboard.stat.valueAnalyzed', money: true },
   { key: 'entities', labelKey: 'dashboard.stat.entities' },
   { key: 'monthsCovered', labelKey: 'dashboard.stat.monthsCovered' },
   { key: 'investigations', labelKey: 'dashboard.stat.investigations' },
@@ -18,9 +21,11 @@ const CARDS: Array<{ key: keyof Counters; labelKey: I18nKey }> = [
 function CounterCard({
   value,
   labelKey,
+  money = false,
 }: {
   value: number;
   labelKey: I18nKey;
+  money?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const count = useCountUp(value, { duration: 1.8, enabled: true });
@@ -42,7 +47,9 @@ function CounterCard({
           letterSpacing: '-0.02em',
         }}
       >
-        {formatInt(count, i18n.language)}
+        {money
+          ? formatGTQ(count, i18n.language)
+          : formatInt(count, i18n.language)}
       </p>
     </div>
   );
@@ -56,6 +63,7 @@ export default function Counters({ counters }: { counters: Counters }) {
           key={c.key}
           value={counters[c.key]}
           labelKey={c.labelKey}
+          money={c.money ?? false}
         />
       ))}
     </div>

@@ -4,7 +4,6 @@ import Counters from './dashboard/Counters';
 import MethodBreakdownChart from './dashboard/MethodBreakdownChart';
 import SignalsByFamily from './dashboard/SignalsByFamily';
 import PriorityDistribution from './dashboard/PriorityDistribution';
-import TrendChart from './dashboard/TrendChart';
 import TopInvestigations from './dashboard/TopInvestigations';
 
 /**
@@ -56,15 +55,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Region D — priority + trend */}
-      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+      {/* Region D — priority */}
+      <div className="mt-6">
         <div className="bg-bg-panel p-6">
           <p className="kicker">{t('dashboard.section.priority')}</p>
           <PriorityDistribution priorityDist={data.priorityDist} />
-        </div>
-        <div className="bg-bg-panel p-6">
-          <p className="kicker">{t('dashboard.section.trend')}</p>
-          <TrendChart trend={data.trend} />
         </div>
       </div>
 

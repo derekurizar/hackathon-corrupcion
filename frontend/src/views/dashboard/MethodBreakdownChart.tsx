@@ -12,13 +12,14 @@ import {
 } from 'recharts';
 import type { StatsDTO } from '@/api/schemas';
 import { useCountUp } from '@/article/scenes/useCountUp';
+import { formatInt } from '@/article/scenes/format';
 
 interface Props {
   methodBreakdown: StatsDTO['methodBreakdown'];
 }
 
 export default function MethodBreakdownChart({ methodBreakdown }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const reduce = useReducedMotion();
 
   const data = useMemo(
@@ -42,9 +43,10 @@ export default function MethodBreakdownChart({ methodBreakdown }: Props) {
 
   return (
     <div>
-      {/* Punchline — single key datum gets the red glow (once, never looped) */}
+      {/* Punchline — single key datum gets the red glow (once, never looped).
+          This is a record count per method, not a share — never suffix `%`. */}
       <p className="numeric-tabular font-display text-display-lg text-accent-red red-glow">
-        {count.toFixed(1)}%
+        {formatInt(count, i18n.language)}
       </p>
       <div
         className="mt-4"
@@ -55,8 +57,7 @@ export default function MethodBreakdownChart({ methodBreakdown }: Props) {
           <BarChart layout="vertical" data={data}>
             <XAxis
               type="number"
-              domain={[0, 100]}
-              tickFormatter={(v) => `${v}%`}
+              tickFormatter={(v: number) => formatInt(v, i18n.language)}
               tick={{ fill: '#5A5A5E', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
@@ -73,6 +74,7 @@ export default function MethodBreakdownChart({ methodBreakdown }: Props) {
               tickLine={false}
             />
             <Tooltip
+              formatter={(v: number) => formatInt(v, i18n.language)}
               contentStyle={{
                 backgroundColor: '#121214',
                 border: '1px solid #262629',

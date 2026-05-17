@@ -29,17 +29,11 @@ const statsFixture: StatsDTO = {
   byFamily: { F1: 12, F2: 8, F3: 5, F4: 3 },
   priorityDist: { high: 14, medium: 19, low: 9 },
   trend: [
-    { month: '2025-01', count: 3 },
-    { month: '2025-02', count: 7 },
+    { month: '2025-01', flagged: 3, value: 1_000_000 },
+    { month: '2025-02', flagged: 7, value: 2_500_000 },
   ],
   topBuyersByFlaggedValue: [
-    {
-      caseKey: 'GT-2025-001',
-      buyer: { name: 'Ministerio de Salud' },
-      totalValue: 4_200_000,
-      currency: 'GTQ',
-      reviewPriority: 'high',
-    },
+    { id: 'GT-NIT:2342855', name: 'Ministerio de Salud', value: 1_592_430.37 },
   ],
 };
 

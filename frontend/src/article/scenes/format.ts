@@ -15,3 +15,17 @@ export function formatShare(share: number): string {
   const pct = Number.isFinite(share) ? share * 100 : 0;
   return `${Math.round(pct)}%`;
 }
+
+/**
+ * Guatemalan Quetzal money — `Q` prefix + grouped value with 2 decimals
+ * (e.g. `Q1,592,430.37`). Built with an explicit `Q` rather than Intl's
+ * `currency` style so the symbol stays `Q` (not `GTQ`) across ES/EN locales.
+ */
+export function formatGTQ(value: number, lang: string): string {
+  const locale = lang.startsWith('es') ? 'es-GT' : 'en-US';
+  const n = Number.isFinite(value) ? value : 0;
+  return `Q${new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n)}`;
+}
