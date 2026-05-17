@@ -57,7 +57,7 @@ export function toCuratedRelease(
 
   // itemFamilies: unique 4-char UNSPSC prefixes; skip ids shorter than 4.
   const familySet = new Set<string>();
-  for (const item of cr.tender.items) {
+  for (const item of (cr.tender.items ?? [])) {
     const cid = item.classification.id;
     if (cid.length < 4) continue;
     familySet.add(cid.slice(0, 4));
@@ -125,7 +125,7 @@ export function toCuratedRelease(
         startDate: cr.tender.tenderPeriod.startDate,
         endDate: cr.tender.tenderPeriod.endDate ?? null,
       },
-      items: cr.tender.items.map((it) => ({
+      items: (cr.tender.items ?? []).map((it) => ({
         classificationId: it.classification.id,
         scheme: it.classification.scheme,
         description: it.description,

@@ -107,7 +107,6 @@ export function createClaudeClient(): ClaudeClient {
               `isLead=${opts.isLead} attempt=${attempt + 1}`,
           );
 
-          console.log(userBlock);
           const response = await anthropic.messages.create({
             model,
             max_tokens: 16384,
