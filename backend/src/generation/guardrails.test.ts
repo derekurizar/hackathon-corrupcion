@@ -72,11 +72,18 @@ describe('checkGuardrails', () => {
     expect(r.ok).toBe(false);
   });
 
-  it('unbacked keyFinding → fail', () => {
+  it('keyFinding citing an out-of-range ev index → fail (invented citation)', () => {
     const s = story();
-    s.es.keyFindings = ['totalmente inventado sin evidencia'];
+    s.es.keyFindings = ['Hallazgo con cita inexistente (ev:9999).'];
     const r = checkGuardrails(s, bundle(), 'X', 'company', BANNED_PHRASES);
     expect(r.ok).toBe(false);
+  });
+
+  it('keyFinding with no ev citation → ok (figure may be a rollup/benchmark)', () => {
+    const s = story();
+    s.es.keyFindings = ['Participación de compra directa cercana al 99%.'];
+    const r = checkGuardrails(s, bundle(), 'X', 'company', BANNED_PHRASES);
+    expect(r.ok).toBe(true);
   });
 
   it('HACKATHON MODE: individual name in output → ok (leak check removed)', () => {
@@ -86,10 +93,10 @@ describe('checkGuardrails', () => {
     expect(r.ok).toBe(true);
   });
 
-  it('keyFinding maps to FULL bundle.evidence, not the prompt sample', () => {
-    // 30 signals → 30 evidence items; a distinctive value sits deep in the
-    // array, far outside any small representative sample the prompt would
-    // show. Guardrails must still trace it because they read full evidence.
+  it('ev citation is range-checked against FULL bundle.evidence, not the prompt sample', () => {
+    // 30 signals → 30 evidence items. A deep index (ev:27) is far outside any
+    // small representative sample the prompt would show, but is still a valid
+    // citation because guardrails range-check against the full evidence.
     const signals: Signal[] = Array.from({ length: 30 }, (_, i) => ({
       _id: `s${i}`,
       ocid: `ocds-${String(i).padStart(3, '0')}`,
@@ -118,10 +125,15 @@ describe('checkGuardrails', () => {
       isLead: false,
     };
     const s = story();
-    s.es.keyFindings = ['awards[].value.amount 777777'];
-    s.en.keyFindings = ['awards[].value.amount 777777'];
-    const r = checkGuardrails(s, big, 'X', 'company', BANNED_PHRASES);
-    expect(r.ok).toBe(true);
+    s.es.keyFindings = ['Valor atípico en una adjudicación profunda (ev:27).'];
+    s.en.keyFindings = ['Outlier value in a deep award (ev:27).'];
+    expect(checkGuardrails(s, big, 'X', 'company', BANNED_PHRASES).ok).toBe(true);
+
+    // ev:30 == evidence.length → out of range → invented citation → fail.
+    const bad = story();
+    bad.es.keyFindings = ['Cita fuera de rango (ev:30).'];
+    bad.en.keyFindings = ['Out of range citation (ev:30).'];
+    expect(checkGuardrails(bad, big, 'X', 'company', BANNED_PHRASES).ok).toBe(false);
   });
 });
 

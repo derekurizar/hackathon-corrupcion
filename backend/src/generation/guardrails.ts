@@ -41,8 +41,16 @@ function collectStrings(story: ClaudeStoryRaw): string[] {
  * Post-generation guardrail check (idea/00 §"Guardrail-fail behavior",
  * idea/04 §"Guardrail enforcement"):
  *  1. No banned phrase anywhere in the output (case-insensitive).
- *  2. Every keyFinding (es + en) traces to at least one evidence item
- *     (substring either direction on `field` or `String(value)`).
+ *  2. Every `ev:<i>` CITED in a keyFinding must RESOLVE (be a real index into
+ *     the full server-side evidence). We deliberately do NOT require the
+ *     finding's prose to substring-match an evidence cell: the figures worth
+ *     stating (shares, rollup aggregates, benchmark metrics) live in
+ *     `benchmark`/digest rollups, never as a single `evidence[i].value`
+ *     (and `String(benchmark)` on an object is just "[object Object]"), so
+ *     the old substring check forced a universal fallback. The system-prefix
+ *     guardrail ("every figure MUST trace to evidence; do not invent") is the
+ *     soft anti-fabrication guard; this hard check only blocks invented
+ *     citations (an `ev:<i>` index that does not exist).
  *
  * HACKATHON MODE: the raw-individual-name leak check was removed — entity
  * names are shown verbatim. The `_rawSupplierName` / `_entityTypeHint`
@@ -67,24 +75,20 @@ export function checkGuardrails(
     }
   }
 
-  // 2 — every keyFinding maps to an evidence item
-  const evidenceTokens: string[] = [];
-  for (const e of bundle.evidence) {
-    evidenceTokens.push(e.field.toLowerCase());
-    evidenceTokens.push(String(e.value).toLowerCase());
-    if (e.benchmark !== undefined) evidenceTokens.push(String(e.benchmark).toLowerCase());
-  }
+  // 2 — every `ev:<i>` cited in a keyFinding must be a real evidence index.
+  // A finding with no `ev:` citation is allowed (the soft prompt guard
+  // covers fabrication); a finding citing an out-of-range index is not.
+  const evCount = bundle.evidence.length;
   const findings = [...story.es.keyFindings, ...story.en.keyFindings];
   for (const finding of findings) {
-    const f = finding.toLowerCase();
-    const mapped = evidenceTokens.some(
-      (tok) => tok.length > 0 && (f.includes(tok) || tok.includes(f)),
-    );
-    if (!mapped) {
-      return {
-        ok: false,
-        reason: `unbacked keyFinding: "${finding}"`,
-      };
+    for (const m of finding.matchAll(/ev:(\d+)/gi)) {
+      const idx = Number.parseInt(m[1]!, 10);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= evCount) {
+        return {
+          ok: false,
+          reason: `unbacked keyFinding: "${finding}" (ev:${m[1]} out of range 0..${evCount - 1})`,
+        };
+      }
     }
   }
 
