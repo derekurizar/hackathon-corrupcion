@@ -5,6 +5,7 @@ import EditionBanner from './newsroom/EditionBanner';
 import FeedFilters from './newsroom/FeedFilters';
 import DossierCard from './newsroom/DossierCard';
 import { useFeedParams } from './newsroom/useFeedParams';
+import Loader from '@/ui/Loader';
 
 /**
  * Newsroom — current-edition hero + filtered dossier feed. Replaces the
@@ -46,7 +47,9 @@ export default function Newsroom() {
         <FeedFilters />
       </div>
 
-      {isEmpty ? (
+      {investigations.isLoading ? (
+        <Loader className="mt-8 min-h-[280px]" />
+      ) : isEmpty ? (
         <div className="mt-8 flex min-h-[200px] items-center justify-center border border-line">
           <p className="kicker text-text-dim">{t('newsroom.empty')}</p>
         </div>

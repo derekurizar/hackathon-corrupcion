@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import i18n from '@/i18n';
 import { useArticleState } from '@/article/ArticleStateContext';
 import { AppShell } from './AppShell';
@@ -26,22 +27,30 @@ function SelectedArticleRoute() {
 }
 
 function renderShell({ articleSelected = false }: { articleSelected?: boolean } = {}) {
+  // Mirror the real app composition (main.tsx wraps everything in a
+  // QueryClientProvider) — the shell now reads cached investigation data for
+  // the PDF export.
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter
-      initialEntries={['/']}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-    >
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route
-            path="/"
-            element={
-              articleSelected ? <SelectedArticleRoute /> : <div>route content</div>
-            }
-          />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter
+        initialEntries={['/']}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route
+              path="/"
+              element={
+                articleSelected ? <SelectedArticleRoute /> : <div>route content</div>
+              }
+            />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -111,5 +120,22 @@ describe('AppShell — brand + locale', () => {
     await user.click(presBtn);
     expect(presBtn).toHaveAttribute('aria-pressed', 'true');
     expect(scrollBtn).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('reveals the presentation play/pause control only in VER mode', async () => {
+    const user = userEvent.setup();
+    renderShell({ articleSelected: true });
+
+    // Scroll mode by default — no presentation transport.
+    expect(
+      screen.queryByRole('button', { name: i18n.t('presentation.play') }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'VER' }));
+
+    // VER selected → play/pause control appears (idle, so it reads "play").
+    expect(
+      screen.getByRole('button', { name: i18n.t('presentation.play') }),
+    ).toBeInTheDocument();
   });
 });

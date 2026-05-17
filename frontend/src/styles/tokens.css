@@ -61,6 +61,7 @@
   --brand-rail-width-narrow: 64px;
   --transport-bar-height: 52px;
   --transport-bar-height-mobile: 60px;
+  --mobile-topbar-height: 52px;
 
   /* === GRAIN === */
   --grain-opacity: 0.045;
@@ -135,10 +136,14 @@
   @media (max-width: 767px) {
     .app-shell {
       grid-template-areas:
+        'header'
         'main'
         'transport';
       grid-template-columns: 1fr;
-      grid-template-rows: minmax(0, 1fr) var(--transport-bar-height-mobile);
+      grid-template-rows:
+        var(--mobile-topbar-height)
+        minmax(0, 1fr)
+        var(--transport-bar-height-mobile);
     }
   }
 

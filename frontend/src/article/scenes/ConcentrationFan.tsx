@@ -1,9 +1,17 @@
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { m, useInView, useReducedMotion } from 'framer-motion';
-import ReactFlow, { Background, Handle, Position, ReactFlowProvider } from 'reactflow';
+import ReactFlow, {
+  Background,
+  Handle,
+  Panel,
+  Position,
+  ReactFlowProvider,
+  useReactFlow,
+} from 'reactflow';
 import type { Edge, Node, NodeProps, NodeTypes } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { Maximize2, Minus, Plus } from 'lucide-react';
 import type { Chapter } from '@/_scene-contract';
 import type { InvestigationFull } from '@/api/schemas';
 import { cn } from '@/lib/utils';
@@ -74,6 +82,55 @@ const nodeTypes: NodeTypes = {
   buyer: BuyerNode,
   supplier: SupplierNode,
 };
+
+/**
+ * Supplementary zoom/pan controls overlaid inside the chart box. Lives inside
+ * the ReactFlow context (rendered via `<Panel>` as a child of `<ReactFlow>`),
+ * so `useReactFlow` resolves. The `sr-only` data table remains the
+ * screen-reader equivalent — these are visual aids only.
+ */
+function ZoomControls({ reduce }: { reduce: boolean }) {
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const { t } = useTranslation();
+  const btn =
+    'flex h-8 w-8 items-center justify-center text-text-mid transition-colors hover:text-text-hi';
+  return (
+    <Panel position="bottom-right">
+      <div className="flex flex-col divide-y divide-line rounded border border-line bg-bg-panel-2">
+        <m.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          className={btn}
+          aria-label={t('article.scene.zoomIn')}
+          title={t('article.scene.zoomIn')}
+          onClick={() => zoomIn({ duration: reduce ? 0 : 200 })}
+        >
+          <Plus size={14} aria-hidden />
+        </m.button>
+        <m.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          className={btn}
+          aria-label={t('article.scene.zoomOut')}
+          title={t('article.scene.zoomOut')}
+          onClick={() => zoomOut({ duration: reduce ? 0 : 200 })}
+        >
+          <Minus size={14} aria-hidden />
+        </m.button>
+        <m.button
+          type="button"
+          whileTap={{ scale: 0.96 }}
+          className={btn}
+          aria-label={t('article.scene.zoomReset')}
+          title={t('article.scene.zoomReset')}
+          onClick={() => fitView({ padding: 0.2, duration: reduce ? 0 : 300 })}
+        >
+          <Maximize2 size={13} aria-hidden />
+        </m.button>
+      </div>
+    </Panel>
+  );
+}
 
 const CX = 120;
 const CY = 260;
@@ -175,16 +232,19 @@ export default function ConcentrationFan({ params }: ConcentrationFanProps) {
               nodesDraggable={false}
               nodesConnectable={false}
               elementsSelectable={false}
-              panOnDrag={false}
+              panOnDrag
               zoomOnScroll={false}
-              zoomOnPinch={false}
+              zoomOnPinch
               zoomOnDoubleClick={false}
+              minZoom={0.3}
+              maxZoom={2.5}
               preventScrolling={false}
               fitView
               fitViewOptions={{ padding: 0.2 }}
               proOptions={{ hideAttribution: true }}
             >
               <Background color="#262629" gap={28} size={1} />
+              <ZoomControls reduce={Boolean(reduce)} />
             </ReactFlow>
           </ReactFlowProvider>
         )}

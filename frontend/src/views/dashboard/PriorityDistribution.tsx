@@ -71,6 +71,7 @@ export default function PriorityDistribution({ priorityDist }: Props) {
               color: '#F5F5F5',
               fontSize: 12,
             }}
+            itemStyle={{ color: '#F5F5F5' }}
             cursor={{ fill: 'rgba(255,255,255,0.03)' }}
           />
           <Bar

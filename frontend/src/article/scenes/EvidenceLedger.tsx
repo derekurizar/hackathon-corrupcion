@@ -120,7 +120,7 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
                 <p className="kicker">{humanField(it.field)}</p>
               </div>
               <div>
-                <p className="numeric-tabular font-display text-display-lg text-text-hi">
+                <p className="numeric-tabular font-display text-[clamp(1.5rem,3vw,2.5rem)] leading-tight text-text-hi">
                   {renderValue(it.value)}
                 </p>
               </div>

@@ -5,6 +5,7 @@ import MethodBreakdownChart from './dashboard/MethodBreakdownChart';
 import SignalsByFamily from './dashboard/SignalsByFamily';
 import PriorityDistribution from './dashboard/PriorityDistribution';
 import TopInvestigations from './dashboard/TopInvestigations';
+import Loader from '@/ui/Loader';
 
 /**
  * "War room" dashboard — counters + four hero charts + top investigations.
@@ -14,13 +15,8 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { data, isLoading } = useStats();
 
-  // TODO(P4): full skeleton on load.
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="kicker text-text-dim">{t('placeholder.loading')}</p>
-      </div>
-    );
+    return <Loader className="h-full" />;
   }
   if (!data) {
     return (
@@ -43,20 +39,20 @@ export default function Dashboard() {
         <Counters counters={data.counters} />
       </div>
 
-      {/* Region C — hero charts */}
-      <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+      {/* Region C — method breakdown, full width */}
+      <div className="mt-12">
         <div className="bg-bg-panel border-t-2 border-accent-red p-6">
           <p className="kicker">{t('dashboard.section.methods')}</p>
           <MethodBreakdownChart methodBreakdown={data.methodBreakdown} />
         </div>
+      </div>
+
+      {/* Region D — signals + priority, same row */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="bg-bg-panel p-6">
           <p className="kicker">{t('dashboard.section.signals')}</p>
           <SignalsByFamily byFamily={data.byFamily} />
         </div>
-      </div>
-
-      {/* Region D — priority */}
-      <div className="mt-6">
         <div className="bg-bg-panel p-6">
           <p className="kicker">{t('dashboard.section.priority')}</p>
           <PriorityDistribution priorityDist={data.priorityDist} />

@@ -26,13 +26,25 @@ type ArticleState = {
   activeChapter: Chapter | null;
   progress: number; // 0 → 1 scroll progress
   audioController: AudioController | null;
+  /** The selected investigation's caseKey, or null off the article route.
+   * Bridged so `TransportBar` (outside the route `<Outlet/>`) can offer the
+   * PDF export. */
+  caseKey: string | null;
+  /** True while the "VER" presentation engine is auto-advancing. */
+  presentationPlaying: boolean;
   setActiveChapter: (ch: Chapter | null) => void;
   setProgress: (p: number) => void;
   setAudioController: (ac: AudioController | null) => void;
+  setCaseKey: (k: string | null) => void;
+  setPresentationPlaying: (p: boolean) => void;
   /** Smooth-scroll the article to a chapter (no-op off the article route). */
   scrollToChapter: (ch: Chapter) => void;
   /** ArticleShell registers the real scroller; null clears it on unmount. */
   registerScrollToChapter: (fn: ((ch: Chapter) => void) | null) => void;
+  /** Play/pause the presentation auto-play (no-op off the article route). */
+  togglePresentation: () => void;
+  /** ArticleShell registers the real toggle; null clears it on unmount. */
+  registerPresentationToggle: (fn: (() => void) | null) => void;
 };
 
 const ArticleStateContext = createContext<ArticleState | null>(null);
@@ -42,6 +54,8 @@ export function ArticleStateProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState(0);
   const [audioController, setAudioController] =
     useState<AudioController | null>(null);
+  const [caseKey, setCaseKey] = useState<string | null>(null);
+  const [presentationPlaying, setPresentationPlaying] = useState(false);
 
   // The scroller lives in ArticleShell (it owns the scroll container ref).
   // Held in a ref so registering it never re-renders rail/transport.
@@ -56,23 +70,46 @@ export function ArticleStateProvider({ children }: { children: ReactNode }) {
     scrollHandlerRef.current?.(ch);
   }, []);
 
+  // Same ref-bridge pattern for the presentation play/pause toggle: the engine
+  // lives in ArticleShell, the button in the (out-of-Outlet) TransportBar.
+  const presentationToggleRef = useRef<(() => void) | null>(null);
+  const registerPresentationToggle = useCallback(
+    (fn: (() => void) | null) => {
+      presentationToggleRef.current = fn;
+    },
+    [],
+  );
+  const togglePresentation = useCallback(() => {
+    presentationToggleRef.current?.();
+  }, []);
+
   const value = useMemo<ArticleState>(
     () => ({
       activeChapter,
       progress,
       audioController,
+      caseKey,
+      presentationPlaying,
       setActiveChapter,
       setProgress,
       setAudioController,
+      setCaseKey,
+      setPresentationPlaying,
       scrollToChapter,
       registerScrollToChapter,
+      togglePresentation,
+      registerPresentationToggle,
     }),
     [
       activeChapter,
       progress,
       audioController,
+      caseKey,
+      presentationPlaying,
       scrollToChapter,
       registerScrollToChapter,
+      togglePresentation,
+      registerPresentationToggle,
     ],
   );
 

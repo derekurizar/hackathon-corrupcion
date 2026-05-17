@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   SCENES,
   defaultScene,
@@ -12,6 +11,7 @@ import type {
 } from '@/_scene-contract';
 import type { InvestigationFull } from '@/api/schemas';
 import { sceneRegistry } from './sceneRegistry';
+import Loader from '@/ui/Loader';
 
 type PlanEntry = { sceneId: string; params: unknown } | undefined;
 
@@ -47,12 +47,7 @@ function toInvestigationView(inv: InvestigationFull): SceneInvestigation {
 }
 
 function SceneFallback() {
-  const { t } = useTranslation();
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <p className="kicker">{t('article.loading')}</p>
-    </div>
-  );
+  return <Loader labelKey="article.loading" className="min-h-[40vh]" />;
 }
 
 /**

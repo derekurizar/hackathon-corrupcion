@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { animate, useReducedMotion } from 'framer-motion';
+import { useExportMode } from '@/article/pdf/ExportModeContext';
 
 type CountUpOptions = {
   /** Start the count-up (e.g. when the scene enters view). */
@@ -20,7 +21,13 @@ export function useCountUp(
   target: number,
   { enabled = true, duration = 1.8, onComplete }: CountUpOptions = {},
 ): number {
-  const reduce = useReducedMotion();
+  // `useReducedMotion()` reads only the OS media query — it ignores
+  // `<MotionConfig reducedMotion="always">`. During PDF capture the export flag
+  // forces the count-up to its final value so the rasterised frame is settled.
+  // Both hooks must run unconditionally (rules-of-hooks).
+  const osReduce = useReducedMotion();
+  const exportMode = useExportMode();
+  const reduce = osReduce || exportMode;
   const safeTarget = Number.isFinite(target) ? target : 0;
   const [value, setValue] = useState(reduce ? safeTarget : 0);
 

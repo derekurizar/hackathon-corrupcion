@@ -7,7 +7,9 @@ import { useInvestigation } from '@/api/hooks';
 import { useArticleState } from './ArticleStateContext';
 import { useMode } from '@/shell/ModeContext';
 import { createAudioController } from './audio';
+import { usePresentationPlayback } from './usePresentationPlayback';
 import { ChapterSlot } from './ChapterSlot';
+import Loader from '@/ui/Loader';
 
 /** The constant chapter spine (idea/05) — order is fixed. */
 const CHAPTERS: Chapter[] = [
@@ -21,12 +23,7 @@ const CHAPTERS: Chapter[] = [
 ];
 
 function ArticleLoadingState() {
-  const { t } = useTranslation();
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <p className="kicker animate-pulse">{t('article.loading')}</p>
-    </div>
-  );
+  return <Loader labelKey="article.loading" className="min-h-[60vh]" />;
 }
 
 function ArticleErrorState() {
@@ -60,8 +57,10 @@ export function ArticleShell() {
     setActiveChapter,
     setProgress,
     setAudioController,
+    setCaseKey,
     audioController,
     registerScrollToChapter,
+    setPresentationPlaying,
   } = useArticleState();
   const { mode } = useMode();
   const { i18n } = useTranslation();
@@ -148,21 +147,35 @@ export function ArticleShell() {
     return () => registerScrollToChapter(null);
   }, [registerScrollToChapter, setActiveChapter]);
 
+  // Expose the selected caseKey to the shell (TransportBar's PDF export lives
+  // outside the route `<Outlet/>`, so it can't read it via `useParams`).
+  useEffect(() => {
+    setCaseKey(caseKey ?? null);
+    return () => setCaseKey(null);
+  }, [caseKey, setCaseKey]);
+
   // Reset rail state on unmount so other routes render the neutral spine.
   useEffect(() => {
     return () => {
       setActiveChapter(null);
       setProgress(0);
+      setPresentationPlaying(false);
     };
-  }, [setActiveChapter, setProgress]);
+  }, [setActiveChapter, setProgress, setPresentationPlaying]);
+
+  // "VER" presentation auto-play: smooth-scrolls chapter by chapter, dwelling
+  // on each scene long enough to read it. Called unconditionally (rules of
+  // hooks) — the engine no-ops until data is loaded. TODO(P4): podcast
+  // cue-point auto-advance still pending.
+  usePresentationPlayback({
+    mode,
+    enabled: Boolean(data),
+    chapters: CHAPTERS,
+    scrollRef,
+  });
 
   if (isLoading) return <ArticleLoadingState />;
   if (error || !data) return <ArticleErrorState />;
-
-  // TODO(P4): full-screen Presentation (mask-wipe / fade-through-black
-  // cross-chapter transitions, ◀ ▶ / Space / Home / End) + Podcast cue-point
-  // auto-advance. P3 renders the scroll experience for all modes.
-  void mode;
 
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto">

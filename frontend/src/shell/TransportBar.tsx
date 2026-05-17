@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { m } from 'framer-motion';
-import type { Chapter } from '@/_scene-contract';
 import { useMode, type NavMode } from './ModeContext';
 import { useArticleState } from '@/article/ArticleStateContext';
 import { useAmbientAudio } from './useAmbientAudio';
 import { cn } from '@/lib/utils';
+import { CHAPTER_ORDER, CHAPTER_LABEL_KEY } from './chapters';
 
 const MODES = [
   { mode: 'scroll', key: 'mode.scroll' },
@@ -13,31 +13,35 @@ const MODES = [
   { mode: 'podcast', key: 'mode.podcast' },
 ] as const satisfies readonly { mode: NavMode; key: string }[];
 
-/** Fixed chapter spine — drives the 7 center tick marks. */
-const CHAPTER_TICKS: Chapter[] = [
-  'cover',
-  'elCaso',
-  'sigueElDinero',
-  'lasConexiones',
-  'evidencia',
-  'cronologia',
-  'cierre',
-];
+type TransportBarProps = {
+  /** Kick off the investigation → PDF export (no-op off the article route). */
+  onExportPdf?: () => void;
+  /** Disable the PDF button (export running, or data not yet cached). */
+  pdfDisabled?: boolean;
+};
 
 /**
  * Bottom transport bar (idea/05): progress/scrubber + chapter ticks (left),
  * mode buttons (center), language toggle (right). A play/pause control
  * appears only when an audio controller is registered (Podcast mode).
  *
- * The bar is always visible, but the progress/ticks and the READ/VIEW/LISTEN
- * mode buttons only appear once an investigation is selected
- * (`activeChapter !== null`). On the neutral routes the bar shows just the
- * ambient-sound and language controls.
+ * The bar is always visible, but the progress/ticks, the READ/VIEW/LISTEN
+ * mode buttons and the PDF export only appear once an investigation is
+ * selected (`activeChapter !== null`). On the neutral routes the bar shows
+ * just the ambient-sound and language controls.
  */
-export function TransportBar() {
+export function TransportBar({ onExportPdf, pdfDisabled }: TransportBarProps) {
   const { t, i18n } = useTranslation();
   const { mode, setMode } = useMode();
-  const { progress, activeChapter, audioController } = useArticleState();
+  const {
+    progress,
+    activeChapter,
+    audioController,
+    caseKey,
+    scrollToChapter,
+    presentationPlaying,
+    togglePresentation,
+  } = useArticleState();
   const { enabled: ambientOn, toggle: toggleAmbient } = useAmbientAudio();
   const [playing, setPlaying] = useState(false);
 
@@ -82,19 +86,31 @@ export function TransportBar() {
             />
           </div>
           <div
-            aria-hidden="true"
+            role="group"
+            aria-label={t('chapter.rail')}
             className="flex items-center justify-between"
           >
-            {CHAPTER_TICKS.map((ch) => {
+            {CHAPTER_ORDER.map((ch) => {
               const active = activeChapter === ch;
               return (
-                <span
+                <button
                   key={ch}
-                  className={cn(
-                    'w-[2px] rounded-full transition-[height,background-color] duration-200',
-                    active ? 'h-3 bg-accent-red' : 'h-2 bg-line',
-                  )}
-                />
+                  type="button"
+                  onClick={() => scrollToChapter(ch)}
+                  aria-label={t(CHAPTER_LABEL_KEY[ch])}
+                  aria-current={active ? 'step' : undefined}
+                  className="group flex h-7 flex-1 cursor-pointer items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-bg-panel"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'w-[2px] rounded-full transition-[height,background-color] duration-200',
+                      active
+                        ? 'h-3 bg-accent-red'
+                        : 'h-2 bg-line group-hover:bg-text-dim',
+                    )}
+                  />
+                </button>
               );
             })}
           </div>
@@ -115,6 +131,50 @@ export function TransportBar() {
           )}
         >
           {playing ? (
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              aria-hidden="true"
+              fill="currentColor"
+            >
+              <rect x="2" y="1.5" width="3.5" height="11" rx="0.5" />
+              <rect x="8.5" y="1.5" width="3.5" height="11" rx="0.5" />
+            </svg>
+          ) : (
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              aria-hidden="true"
+              fill="currentColor"
+            >
+              <path d="M3 1.8v10.4a.6.6 0 0 0 .92.5l8.2-5.2a.6.6 0 0 0 0-1l-8.2-5.2A.6.6 0 0 0 3 1.8Z" />
+            </svg>
+          )}
+        </m.button>
+      )}
+
+      {/* Play/pause — "VER" presentation auto-play (only in that mode) */}
+      {articleSelected && mode === 'presentation' && (
+        <m.button
+          type="button"
+          onClick={togglePresentation}
+          aria-label={
+            presentationPlaying
+              ? t('presentation.pause')
+              : t('presentation.play')
+          }
+          aria-pressed={presentationPlaying}
+          whileTap={{ scale: 0.88 }}
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-bg-panel-2 text-text-hi',
+            presentationPlaying
+              ? 'border-accent-red red-glow-box'
+              : 'border-line',
+          )}
+        >
+          {presentationPlaying ? (
             <svg
               width="14"
               height="14"
@@ -166,6 +226,41 @@ export function TransportBar() {
             );
           })}
         </div>
+      )}
+
+      {/* PDF export — only with an investigation selected. Generates a PDF
+          that reproduces the 7 chapters exactly as shown on screen. */}
+      {articleSelected && caseKey && onExportPdf && (
+        <m.button
+          type="button"
+          onClick={onExportPdf}
+          disabled={pdfDisabled}
+          aria-label={t('pdf.export')}
+          title={t('pdf.export')}
+          whileTap={{ scale: 0.88 }}
+          className={cn(
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-bg-panel-2 border-line text-text-dim transition-colors',
+            pdfDisabled
+              ? 'cursor-not-allowed opacity-40'
+              : 'hover:text-text-mid',
+          )}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M8 1.5H3.5A1 1 0 0 0 2.5 2.5v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V5z" />
+            <path d="M8 1.5V5h3.5" />
+            <path d="M7 7v3.2M5.4 8.8 7 10.4l1.6-1.6" />
+          </svg>
+        </m.button>
       )}
 
       {/* Ambient sound toggle — page-wide audio bed (on by default) */}

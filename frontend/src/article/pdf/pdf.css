@@ -1,0 +1,24 @@
+/*
+ * Capture-stage overrides. `ChapterSlot`'s <section> uses
+ * `content-visibility:auto` for scroll perf, which skips painting offscreen
+ * subtrees — html-to-image would then serialise a tall chapter as an empty
+ * placeholder box. Force full paint inside the capture stage only.
+ */
+.pdf-capture-root section {
+  content-visibility: visible !important;
+  contain-intrinsic-size: auto !important;
+}
+
+/*
+ * Hide the stage scrollbar so the root's client width stays equal to the
+ * layout viewport width. The scenes size display type with `vw` units; if a
+ * scrollbar shrank the client width, that type would overflow the capture box
+ * by the scrollbar width and clip on the right edge.
+ */
+.pdf-capture-root {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.pdf-capture-root::-webkit-scrollbar {
+  display: none;
+}
