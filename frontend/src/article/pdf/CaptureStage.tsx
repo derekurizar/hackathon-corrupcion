@@ -137,7 +137,13 @@ export function CaptureStage({
         position: 'fixed',
         inset: 0,
         zIndex: 9990,
-        overflow: 'auto',
+        // Vertical scroll only (the settle pass scrolls through the chapter to
+        // fire `useInView`). Horizontal overflow is clipped so a scene that
+        // internally overflows (React Flow pane, timeline spine) doesn't widen
+        // the capture box and push the centred column off-page — the live
+        // article never scrolls sideways either.
+        overflowX: 'hidden',
+        overflowY: 'auto',
         background: BG_BASE,
       }}
     >
@@ -147,6 +153,7 @@ export function CaptureStage({
           // Full viewport width so `vw`/`svh`-based scene type resolves
           // exactly as on screen (a fixed px width clips the cover headline).
           width: '100%',
+          overflowX: 'hidden',
           background: BG_BASE,
         }}
       >

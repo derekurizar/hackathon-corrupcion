@@ -110,10 +110,22 @@ export function usePdfExport(caseKey: string | null): PdfExportController {
           }
         }
 
+        // Capture at an explicit, deterministic box so the image and the PDF
+        // page match exactly:
+        //  - width  = clientWidth (the fixed stage/viewport width; horizontal
+        //    overflow is clipped in the stage). Using `scrollWidth` here was
+        //    the off-centring bug — an overflowing scene (timeline / React
+        //    Flow) made the page wider than the image, dropping the centred
+        //    `margin-inline:auto` column into the left of an empty page.
+        //  - height = scrollHeight (full natural chapter — never cropped).
+        const pageW = Math.ceil(el.clientWidth);
+        const pageH = Math.ceil(el.scrollHeight);
         const opts = {
           pixelRatio: 2,
           cacheBust: true,
           backgroundColor: BG_BASE,
+          width: pageW,
+          height: pageH,
           ...(fontEmbedCSS ? { fontEmbedCSS } : {}),
         };
         let dataUrl: string;
@@ -125,11 +137,7 @@ export function usePdfExport(caseKey: string | null): PdfExportController {
         }
         throwIfAborted();
 
-        pages.push({
-          dataUrl,
-          width: Math.ceil(el.scrollWidth),
-          height: Math.ceil(el.scrollHeight),
-        });
+        pages.push({ dataUrl, width: pageW, height: pageH });
       }
 
       setMountTarget(null);
