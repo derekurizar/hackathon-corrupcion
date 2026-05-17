@@ -15,7 +15,10 @@ import type { AudioController } from './audio';
  *
  * The default state is INERT: routes that never call the setters (Dashboard,
  * Newsroom, Methodology) keep `activeChapter: null`, `progress: 0`,
- * `audioController: null`, so the rail/transport render their neutral state.
+ * `audioController: null`. In that neutral state the rail hides the chapter
+ * spine and the transport hides the progress/ticks + READ/VIEW/LISTEN mode
+ * buttons — only once an investigation is selected (`activeChapter !== null`)
+ * do those article-scoped controls appear.
  */
 type ArticleState = {
   activeChapter: Chapter | null;

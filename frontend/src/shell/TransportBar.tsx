@@ -28,6 +28,11 @@ const CHAPTER_TICKS: Chapter[] = [
  * Bottom transport bar (idea/05): progress/scrubber + chapter ticks (left),
  * mode buttons (center), language toggle (right). A play/pause control
  * appears only when an audio controller is registered (Podcast mode).
+ *
+ * The bar is always visible, but the progress/ticks and the READ/VIEW/LISTEN
+ * mode buttons only appear once an investigation is selected
+ * (`activeChapter !== null`). On the neutral routes the bar shows just the
+ * ambient-sound and language controls.
  */
 export function TransportBar() {
   const { t, i18n } = useTranslation();
@@ -36,6 +41,7 @@ export function TransportBar() {
   const { enabled: ambientOn, toggle: toggleAmbient } = useAmbientAudio();
   const [playing, setPlaying] = useState(false);
 
+  const articleSelected = activeChapter !== null;
   const pct = Math.round(progress * 100);
 
   const toggleLang = () => {
@@ -55,40 +61,45 @@ export function TransportBar() {
 
   return (
     <div className="flex h-full items-center gap-4 border-t border-line bg-bg-panel px-4">
-      {/* Zone 1 — progress / scrubber + chapter ticks */}
+      {/* Zone 1 — progress / scrubber + chapter ticks (only with an article;
+          otherwise a flex spacer keeps the controls pinned right). */}
       {/* TODO(P4): podcast cue-point scrubbing (seek on tick / drag) */}
-      <div className="flex flex-1 flex-col gap-1.5">
-        <div
-          role="progressbar"
-          aria-label={t('transport.progress')}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={pct}
-          className="h-[3px] w-full rounded-full bg-line"
-        >
+      {!articleSelected ? (
+        <div className="flex-1" aria-hidden="true" />
+      ) : (
+        <div className="flex flex-1 flex-col gap-1.5">
           <div
-            className="h-full rounded-full bg-accent-red transition-[width] duration-300"
-            style={{ width: `${pct}%` }}
-          />
+            role="progressbar"
+            aria-label={t('transport.progress')}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+            className="h-[3px] w-full rounded-full bg-line"
+          >
+            <div
+              className="h-full rounded-full bg-accent-red transition-[width] duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div
+            aria-hidden="true"
+            className="flex items-center justify-between"
+          >
+            {CHAPTER_TICKS.map((ch) => {
+              const active = activeChapter === ch;
+              return (
+                <span
+                  key={ch}
+                  className={cn(
+                    'w-[2px] rounded-full transition-[height,background-color] duration-200',
+                    active ? 'h-3 bg-accent-red' : 'h-2 bg-line',
+                  )}
+                />
+              );
+            })}
+          </div>
         </div>
-        <div
-          aria-hidden="true"
-          className="flex items-center justify-between"
-        >
-          {CHAPTER_TICKS.map((ch) => {
-            const active = activeChapter === ch;
-            return (
-              <span
-                key={ch}
-                className={cn(
-                  'w-[2px] rounded-full transition-[height,background-color] duration-200',
-                  active ? 'h-3 bg-accent-red' : 'h-2 bg-line',
-                )}
-              />
-            );
-          })}
-        </div>
-      </div>
+      )}
 
       {/* Play/pause — Podcast transport (only when audio is registered) */}
       {audioController && (
@@ -128,32 +139,34 @@ export function TransportBar() {
         </m.button>
       )}
 
-      {/* Zone 2 — mode buttons */}
-      <div
-        role="group"
-        aria-label={t('mode.label')}
-        className="flex items-center gap-1"
-      >
-        {MODES.map(({ mode: m2, key }) => {
-          const active = mode === m2;
-          return (
-            <button
-              key={m2}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setMode(m2)}
-              className={cn(
-                'h-8 min-w-[72px] rounded-sm border px-3 font-body text-[10px] uppercase tracking-label transition-colors',
-                active
-                  ? 'border-line bg-bg-panel-2 text-text-hi'
-                  : 'border-transparent text-text-dim hover:text-text-mid',
-              )}
-            >
-              {t(key)}
-            </button>
-          );
-        })}
-      </div>
+      {/* Zone 2 — mode buttons (only with an investigation selected) */}
+      {articleSelected && (
+        <div
+          role="group"
+          aria-label={t('mode.label')}
+          className="flex items-center gap-1"
+        >
+          {MODES.map(({ mode: m2, key }) => {
+            const active = mode === m2;
+            return (
+              <button
+                key={m2}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setMode(m2)}
+                className={cn(
+                  'h-8 min-w-[72px] rounded-sm border px-3 font-body text-[10px] uppercase tracking-label transition-colors',
+                  active
+                    ? 'border-line bg-bg-panel-2 text-text-hi'
+                    : 'border-transparent text-text-dim hover:text-text-mid',
+                )}
+              >
+                {t(key)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Ambient sound toggle — page-wide audio bed (on by default) */}
       <m.button
