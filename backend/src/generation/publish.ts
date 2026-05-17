@@ -373,6 +373,13 @@ export async function publishInvestigations(args: PublishArgs): Promise<PublishR
 
     if (usedFallback) fallbacks += 1;
 
+    // FULL locked scene signals for ref resolution only. The LLM's `ev:<i>`
+    // indices come from the digest (built over the full evidence), so
+    // `validateScenePlan` must resolve refs against the full set, not the
+    // bounded BSON-safe `sceneSignals`/`sceneEvidence`. Passing `[]` as the
+    // resolve-evidence makes `flattenCaseEvidence(fullSignals, [])` reproduce
+    // the exact digest `ev:<i>` ordering (sorted signals' evidence).
+    const resolveSceneSignals = toSceneSignals(bundle);
     const resolvedScenePlan = resolveScenePlan(
       bundle.firedRuleIds,
       llmScenePlan,
@@ -380,6 +387,8 @@ export async function publishInvestigations(args: PublishArgs): Promise<PublishR
       sceneEvidence,
       sceneInvestigation,
       bundle.caseKey,
+      resolveSceneSignals,
+      [],
     );
 
     const { evidence: persistEvidence, cap: evCap } = boundPersistedEvidence(

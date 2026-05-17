@@ -177,6 +177,14 @@ function fallback(
  * contract"). On ANY failure returns the chapter's derived default scene with
  * `source: 'fallback'`; on full success returns the (bound-overwritten) entry
  * with `source: 'llm'`. The article therefore always renders.
+ *
+ * `signals`/`evidence` drive the shortlist + the BSON-safe fallback/bound
+ * derivation (a bounded representative set). `resolveSignals`/`resolveEvidence`
+ * are the FULL locked set used ONLY to resolve `ev:<i>`/`sig:` refs — the
+ * LLM's `ev:<i>` indices come from the digest, which is built over the full
+ * evidence, so resolving them against the bounded set would spuriously fail.
+ * Both default to `signals`/`evidence` (back-compat: identical behavior when
+ * the caller does not split the sets).
  */
 export function validateScenePlan(
   chapter: Chapter,
@@ -184,7 +192,11 @@ export function validateScenePlan(
   signals: SceneSignal[],
   evidence: SceneEvidenceItem[],
   investigation: SceneInvestigation,
+  resolveSignals?: SceneSignal[],
+  resolveEvidence?: SceneEvidenceItem[],
 ): ScenePlanEntry {
+  const rSignals = resolveSignals ?? signals;
+  const rEvidence = resolveEvidence ?? evidence;
   const fb = (): ScenePlanEntry => fallback(chapter, signals, evidence, investigation);
 
   // Rule 1 — sceneId must be in the chapter shortlist.
@@ -239,7 +251,7 @@ export function validateScenePlan(
           quantOk = false;
           return;
         }
-        if (resolveRef(parsed, signals, evidence) === undefined) {
+        if (resolveRef(parsed, rSignals, rEvidence) === undefined) {
           quantOk = false;
         }
         return;
@@ -263,7 +275,7 @@ export function validateScenePlan(
         quantOk = false;
         return;
       }
-      if (resolveRef(parsed, signals, evidence) === undefined) {
+      if (resolveRef(parsed, rSignals, rEvidence) === undefined) {
         quantOk = false;
       }
     });

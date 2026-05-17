@@ -42,6 +42,12 @@ export function resolveScenePlan(
   /** Logging-only context; defaults to 'unknown' so existing callers/tests
    * stay source-compatible (additive, optional — no contract break). */
   caseKey = 'unknown',
+  /** FULL locked signals/evidence for `ev:`/`sig:` ref resolution only. The
+   * LLM's `ev:<i>` indices come from the digest (built over full evidence);
+   * `sceneSignals`/`sceneEvidence` are a bounded BSON-safe set, so refs must
+   * resolve against the full set. Optional — defaults to the bounded set. */
+  resolveSignals?: SceneSignal[],
+  resolveEvidence?: SceneEvidenceItem[],
 ): Record<string, ScenePlanEntry> {
   const out: Record<string, ScenePlanEntry> = {};
   for (const chapter of CHAPTERS) {
@@ -57,6 +63,8 @@ export function resolveScenePlan(
       sceneSignals,
       sceneEvidence,
       sceneInvestigation,
+      resolveSignals,
+      resolveEvidence,
     );
     out[chapter] = validated;
     const llmSceneId = llm?.sceneId ?? '';
