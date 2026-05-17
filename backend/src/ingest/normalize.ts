@@ -30,6 +30,13 @@ import type { GuatecomprasRecord } from '../ocds/index.js';
  * - Sparsity defaults: absent `bids/awards/contracts` → `[]`; absent
  *   `mainProcurementCategory` (~0.24%) → `"unknown"`; absent
  *   `tenderPeriod.endDate` (~75%) → `null` (schema is nullable here).
+ * - Real Guatecompras data also drops `bids[].value`, `awards[].value`,
+ *   `awards[].suppliers`, `contracts[].value`, `contracts[].period`,
+ *   `tender.tenderPeriod`, and item `classification`/`unit` on some records.
+ *   Numeric money defaults to `0`, currency to `"GTQ"`, missing string ids/
+ *   names to `""`. Schema-non-nullable dates (`tenderPeriod.startDate`,
+ *   `contract.period.start`/`.end`) use the `""` sentinel (same convention as
+ *   `firstDatePublished`) — callers MUST guard `!== ''` before date-parsing.
  * - Money is kept as `Number` (float64) — never stringified.
  *
  * Throws (with `ocid` context) if the result does not satisfy
@@ -58,7 +65,7 @@ export function toCuratedRelease(
   // itemFamilies: unique 4-char UNSPSC prefixes; skip ids shorter than 4.
   const familySet = new Set<string>();
   for (const item of (cr.tender.items ?? [])) {
-    const cid = item.classification.id;
+    const cid = item.classification?.id ?? '';
     if (cid.length < 4) continue;
     familySet.add(cid.slice(0, 4));
   }
@@ -76,10 +83,10 @@ export function toCuratedRelease(
         );
 
   const bids = (cr.bids?.details ?? []).map((b) => ({
-    status: b.status,
-    amount: b.value.amount, // Number (float64) — never stringified
+    status: b.status ?? '',
+    amount: b.value?.amount ?? 0, // Number (float64) — never stringified
     // RAW tenderer id (NOT canonicalized) — joins with raw supplierIds.
-    tendererId: b.tenderers[0]?.id ?? '',
+    tendererId: b.tenderers?.[0]?.id ?? '',
   }));
   const bidCounts = {
     count: bids.length,
@@ -88,49 +95,53 @@ export function toCuratedRelease(
   };
 
   const awards = (cr.awards ?? []).map((a) => ({
-    id: a.id,
-    date: a.date,
-    status: a.status,
-    statusDetails: a.statusDetails,
-    value: { amount: a.value.amount, currency: a.value.currency },
-    supplierIds: a.suppliers.map((s) => s.id), // RAW supplier ids
+    id: a.id ?? '',
+    date: a.date ?? '',
+    status: a.status ?? '',
+    statusDetails: a.statusDetails ?? '',
+    value: { amount: a.value?.amount ?? 0, currency: a.value?.currency ?? 'GTQ' },
+    supplierIds: (a.suppliers ?? []).map((s) => s.id), // RAW supplier ids
   }));
 
   const contracts = (cr.contracts ?? []).map((c) => ({
-    id: c.id,
-    awardID: c.awardID,
-    dateSigned: c.dateSigned,
-    value: { amount: c.value.amount, currency: c.value.currency },
-    period: { start: c.period.startDate, end: c.period.endDate },
+    id: c.id ?? '',
+    awardID: c.awardID ?? '',
+    dateSigned: c.dateSigned ?? '',
+    value: { amount: c.value?.amount ?? 0, currency: c.value?.currency ?? 'GTQ' },
+    // Schema requires non-nullable strings here → '' sentinel (matches the
+    // firstDatePublished convention). Callers MUST guard `!== ''` before parsing.
+    period: { start: c.period?.startDate ?? '', end: c.period?.endDate ?? '' },
     documentsCount: c.documents?.length ?? 0,
-    contractNumber: c.contractNumber,
+    contractNumber: c.contractNumber ?? '',
   }));
 
   const result: CuratedRelease = {
     ocid: cr.ocid,
-    id: cr.id,
-    date: cr.date,
+    id: cr.id ?? '',
+    date: cr.date ?? '',
     year: ctx.year,
     month: ctx.month,
-    buyer: { id: buyerId, name: cr.buyer.name },
+    buyer: { id: buyerId, name: cr.buyer?.name ?? '' },
     tender: {
-      id: cr.tender.id,
-      title: cr.tender.title,
-      statusDetails: cr.tender.statusDetails,
-      procurementMethodDetails: cr.tender.procurementMethodDetails,
+      id: cr.tender.id ?? '',
+      title: cr.tender.title ?? '',
+      statusDetails: cr.tender.statusDetails ?? '',
+      procurementMethodDetails: cr.tender.procurementMethodDetails ?? '',
       mainProcurementCategory: cr.tender.mainProcurementCategory ?? 'unknown',
-      numberOfTenderers: cr.tender.numberOfTenderers,
-      datePublished: cr.tender.datePublished,
+      numberOfTenderers: cr.tender.numberOfTenderers ?? 0,
+      datePublished: cr.tender.datePublished ?? '',
       tenderPeriod: {
-        startDate: cr.tender.tenderPeriod.startDate,
-        endDate: cr.tender.tenderPeriod.endDate ?? null,
+        // startDate schema is non-nullable → '' sentinel (endDate is nullable).
+        // Callers MUST guard `!== ''` before date-parsing startDate.
+        startDate: cr.tender.tenderPeriod?.startDate ?? '',
+        endDate: cr.tender.tenderPeriod?.endDate ?? null,
       },
       items: (cr.tender.items ?? []).map((it) => ({
-        classificationId: it.classification.id,
-        scheme: it.classification.scheme,
-        description: it.description,
-        quantity: it.quantity,
-        unitName: it.unit.name,
+        classificationId: it.classification?.id ?? '',
+        scheme: it.classification?.scheme ?? '',
+        description: it.description ?? '',
+        quantity: it.quantity ?? 0,
+        unitName: it.unit?.name ?? '',
       })),
       itemFamilies: [...familySet],
       documentsSummary: {

@@ -68,9 +68,28 @@ export async function runDetection(args: RunDetectionArgs = {}): Promise<RunDete
     // Fall back: derive scope from the only benchmark in the collection.
     const { getCollection } = await import('../db/collections.js');
     const col = await getCollection('benchmarks');
-    const doc = (await col.findOne({} as never)) as Benchmark | null;
+    // After repo-layer sharding the collection holds 6 docs per scope (1 head
+    // + 5 parts). A plain `findOne({})` has no ordering guarantee and may
+    // return a part-doc first (e.g. `scope:…#splittingClusters`), which would
+    // then be misread as a full Benchmark by `getBenchmarkByScope`. Use a
+    // two-stage strategy so we always resolve to a head/monolithic doc and
+    // never a part-doc.
+    // Stage 1: prefer sharded HEAD docs (they carry `shardKeys`).
+    // Part-docs intentionally lack `shardKeys` but so do legacy monolithic
+    // docs — so if stage 1 returns null we try stage 2.
+    const headDoc = (await col.findOne({ shardKeys: { $exists: true } } as never)) as
+      | (Benchmark & { shardKeys?: string[] })
+      | null;
+    // Stage 2: fall back to any doc whose _id does NOT contain '#'.
+    // Part-doc ids always contain '#' (e.g. 'scope:…#splittingClusters');
+    // legacy monolithic docs and head-docs-without-shardKeys never do.
+    const anyDoc =
+      headDoc ??
+      ((await col.findOne({} as never)) as (Benchmark & { shardKeys?: string[] }) | null);
+    // Guard: if we somehow got a part-doc, skip it (its _id contains '#').
+    const doc = anyDoc?._id.includes('#') ? null : anyDoc;
     if (doc) {
-      benchmarks = doc;
+      benchmarks = await getBenchmarkByScope(doc._id);
       scope = doc._id;
     }
   }
