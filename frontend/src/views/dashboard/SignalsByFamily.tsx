@@ -21,12 +21,12 @@ export default function SignalsByFamily({ byFamily }: Props) {
 
   const data = useMemo(
     () => [
-      { family: 'F1', count: byFamily.F1 },
-      { family: 'F2', count: byFamily.F2 },
-      { family: 'F3', count: byFamily.F3 },
-      { family: 'F4', count: byFamily.F4 },
+      { family: 'F1', label: t('family.short.F1'), count: byFamily.F1 },
+      { family: 'F2', label: t('family.short.F2'), count: byFamily.F2 },
+      { family: 'F3', label: t('family.short.F3'), count: byFamily.F3 },
+      { family: 'F4', label: t('family.short.F4'), count: byFamily.F4 },
     ],
-    [byFamily],
+    [byFamily, t],
   );
 
   return (
@@ -39,7 +39,7 @@ export default function SignalsByFamily({ byFamily }: Props) {
         <RadarChart data={data}>
           <PolarGrid gridType="polygon" stroke="#262629" />
           <PolarAngleAxis
-            dataKey="family"
+            dataKey="label"
             tick={{ fill: '#5A5A5E', fontSize: 11 }}
           />
           <PolarRadiusAxis stroke="transparent" tick={false} />

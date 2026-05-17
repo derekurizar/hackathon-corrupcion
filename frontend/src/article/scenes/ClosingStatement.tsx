@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 interface ClosingStatementParams {
   whatItMeans: string;
   caveat: string;
+  conclusions: string[];
   ctas: ['methodology', 'listen', 'share'];
 }
 
@@ -59,16 +60,20 @@ export default function ClosingStatement({ params }: ClosingStatementProps) {
 
   return (
     <div ref={ref} className="mx-auto max-w-[900px]">
+      {p.conclusions && p.conclusions.length > 0 && (
+        <ul className="mb-6 space-y-2">
+          {p.conclusions.map((c, i) => (
+            <li key={i} className="font-body text-body-sm text-text-mid flex gap-2">
+              <span className="text-accent-red mt-0.5">—</span>
+              <span>{c}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <m.p
         className="max-w-[56ch] font-body text-body-lg leading-body text-text-hi text-pretty"
         initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
-        animate={
-          inView
-            ? { opacity: 1, y: 0 }
-            : reduce
-              ? { opacity: 0 }
-              : { opacity: 0, y: 24 }
-        }
+        animate={inView ? { opacity: 1, y: 0 } : reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
         transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1] }}
       >
         {p.whatItMeans}
@@ -80,13 +85,7 @@ export default function ClosingStatement({ params }: ClosingStatementProps) {
           caveatGlow && 'red-glow-box',
         )}
         initial={reduce ? { opacity: 0 } : { opacity: 0, x: -16 }}
-        animate={
-          inView
-            ? { opacity: 1, x: 0 }
-            : reduce
-              ? { opacity: 0 }
-              : { opacity: 0, x: -16 }
-        }
+        animate={inView ? { opacity: 1, x: 0 } : reduce ? { opacity: 0 } : { opacity: 0, x: -16 }}
         transition={{
           duration: 0.48,
           ease: [0.16, 1, 0.3, 1],
@@ -107,9 +106,7 @@ export default function ClosingStatement({ params }: ClosingStatementProps) {
         variants={{
           hidden: {},
           show: {
-            transition: reduce
-              ? {}
-              : { staggerChildren: 0.06, delayChildren: 0.4 },
+            transition: reduce ? {} : { staggerChildren: 0.06, delayChildren: 0.4 },
           },
         }}
       >

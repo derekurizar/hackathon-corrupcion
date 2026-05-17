@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useFilters } from '@/api/hooks';
-import type { I18nKey } from '@/i18n/keys';
+import { tk, type I18nKey } from '@/i18n/keys';
 import { useFeedParams } from './useFeedParams';
 
 const INPUT_CLS =
@@ -51,7 +51,7 @@ export default function FeedFilters() {
           <option value="">{t('newsroom.filters.all')}</option>
           {families.map((f) => (
             <option key={f} value={f}>
-              {f}
+              {t(tk(`family.full.${f}`))}
             </option>
           ))}
         </select>

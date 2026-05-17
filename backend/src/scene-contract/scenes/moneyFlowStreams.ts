@@ -19,6 +19,7 @@ const MoneyFlowStreamsSchema = z.object({
     .min(1),
   emphasisSupplierId: z.string(),
   caption: z.string(),
+  narration: z.string(),
 });
 
 export const moneyFlowStreams: SceneDescriptor = {
@@ -37,5 +38,6 @@ export const moneyFlowStreams: SceneDescriptor = {
     'streams[].shareRef': 'quant',
     emphasisSupplierId: 'presentational',
     caption: 'presentational',
+    narration: 'presentational',
   },
 };

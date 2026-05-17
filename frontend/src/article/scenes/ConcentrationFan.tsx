@@ -1,12 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { m, useInView, useReducedMotion } from 'framer-motion';
-import ReactFlow, {
-  Background,
-  Handle,
-  Position,
-  ReactFlowProvider,
-} from 'reactflow';
+import ReactFlow, { Background, Handle, Position, ReactFlowProvider } from 'reactflow';
 import type { Edge, Node, NodeProps, NodeTypes } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Chapter } from '@/_scene-contract';
@@ -31,6 +26,7 @@ interface ConcentrationFanParams {
   topShareRef: string;
   suppliers: FanSupplier[];
   caption: string;
+  narration: string;
 }
 
 interface ConcentrationFanProps {
@@ -61,23 +57,15 @@ function SupplierNode({ data }: NodeProps<SupplierData>) {
     <m.div
       initial={data.reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={
-        data.reduce
-          ? { duration: 0.2 }
-          : { type: 'spring', bounce: 0.15, duration: 0.5 }
-      }
+      transition={data.reduce ? { duration: 0.2 } : { type: 'spring', bounce: 0.15, duration: 0.5 }}
       className={cn(
         'flex items-center justify-center rounded-full border bg-bg-panel text-center',
-        data.flagged
-          ? 'red-glow-pulse border-2 border-accent-red'
-          : 'border border-line',
+        data.flagged ? 'red-glow-pulse border-2 border-accent-red' : 'border border-line',
       )}
       style={{ width: data.size, height: data.size }}
     >
       <Handle type="target" position={Position.Left} className="!opacity-0" />
-      <span className="px-1 font-body text-[10px] leading-tight text-text-mid">
-        {data.label}
-      </span>
+      <span className="px-1 font-body text-[10px] leading-tight text-text-mid">{data.label}</span>
     </m.div>
   );
 }
@@ -105,10 +93,7 @@ export default function ConcentrationFan({ params }: ConcentrationFanProps) {
     onComplete: () => setStatDone(true),
   });
 
-  const maxValue = useMemo(
-    () => Math.max(...p.suppliers.map((s) => s.value), 1),
-    [p.suppliers],
-  );
+  const maxValue = useMemo(() => Math.max(...p.suppliers.map((s) => s.value), 1), [p.suppliers]);
 
   const { nodes, edges } = useMemo(() => {
     const ns: Node[] = [
@@ -128,10 +113,7 @@ export default function ConcentrationFan({ params }: ConcentrationFanProps) {
       const angle = ((-60 + tFrac * 120) * Math.PI) / 180;
       const x = CX + Math.cos(angle) * RADIUS;
       const y = CY + Math.sin(angle) * RADIUS;
-      const size = Math.max(
-        48,
-        Math.min(96, 48 + (s.value / maxValue) * 48),
-      );
+      const size = Math.max(48, Math.min(96, 48 + (s.value / maxValue) * 48));
       ns.push({
         id: s.supplierId,
         type: 'supplier',
@@ -168,6 +150,12 @@ export default function ConcentrationFan({ params }: ConcentrationFanProps) {
         {formatInt(topShare, i18n.language)}%
       </p>
       <p className="mt-2 mb-6 kicker">{p.caption}</p>
+
+      {p.narration && (
+        <p className="font-body text-body-sm text-text-mid text-pretty max-w-[60ch] mb-4">
+          {p.narration}
+        </p>
+      )}
 
       <div className="h-[520px] w-full overflow-hidden rounded border border-line bg-bg-panel">
         <ReactFlowProvider>

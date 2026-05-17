@@ -1,13 +1,14 @@
 import type { Entity } from '../schema/index.js';
 
 /**
- * Public, anonymization-safe supplier display fields (idea/00 §"Individual
- * supplier anonymization", idea/04 §"Anonymization boundary").
+ * Public supplier display fields.
  *
- * Buyers and company suppliers are named verbatim. Natural-person suppliers
- * (`entityType` = individual) and `unknown` (treated as individual for
- * privacy) are rendered ONLY as "an individual supplier" / "un proveedor
- * individual". The raw name and canonical id never reach `investigations`.
+ * HACKATHON MODE: entity-name masking is disabled. Every supplier — buyer,
+ * company, natural person, or unknown — is rendered verbatim from the DB.
+ * The interface shape is unchanged for downstream compatibility; only the
+ * runtime values changed. `isIndividual` still reflects the real entity type
+ * (true only when `entityType === 'individual'`) so the API-layer leak guard
+ * stays accurate, but names are no longer suppressed.
  */
 export interface AnonymizedSupplier {
   id: string;
@@ -19,18 +20,10 @@ export interface AnonymizedSupplier {
 export function anonymizeSupplier(
   entity: Pick<Entity, '_id' | 'name' | 'entityType'>,
 ): AnonymizedSupplier {
-  if (entity.entityType === 'individual' || entity.entityType === 'unknown') {
-    return {
-      id: entity._id,
-      displayNameEs: 'un proveedor individual',
-      displayNameEn: 'an individual supplier',
-      isIndividual: true,
-    };
-  }
   return {
     id: entity._id,
     displayNameEs: entity.name,
     displayNameEn: entity.name,
-    isIndividual: false,
+    isIndividual: entity.entityType === 'individual',
   };
 }

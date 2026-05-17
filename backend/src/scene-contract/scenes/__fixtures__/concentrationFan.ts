@@ -23,6 +23,7 @@ export const validConcentrationFan = {
     },
   ],
   caption: 'Un proveedor domina las adjudicaciones del comprador.',
+  narration: 'Fixture narration for concentration fan.',
 };
 
 // invalid: flagged is a string, not boolean

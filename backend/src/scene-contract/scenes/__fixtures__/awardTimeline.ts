@@ -6,6 +6,7 @@ export const validAwardTimeline = {
   missingStages: ['tenderClose', 'contractSigned'],
   highlightIdx: 1,
   caption: 'Adjudicación dos días después de la publicación.',
+  narration: 'Fixture narration for award timeline.',
 };
 
 // invalid: highlightIdx is not an integer

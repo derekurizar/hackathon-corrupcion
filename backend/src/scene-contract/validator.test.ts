@@ -52,6 +52,7 @@ function validCoverEntry(): ScenePlanEntry {
       buyer: 'Ministerio de Salud',
       supplierDisplay: 'Proveedor A',
       reviewPriority: 'high',
+      intro: 'test intro',
     },
     source: 'llm',
   };
@@ -141,6 +142,7 @@ describe('validateScenePlan — rule 4 (presentational emphasis target must exis
         ],
         emphasisSupplierId: emphasis,
         caption: 'El dinero fluye a un proveedor.',
+        narration: 'test narration',
       },
       source: 'llm',
     };
@@ -178,6 +180,7 @@ describe('validateScenePlan — rule 5 (ClosingStatement caveat mandatory)', () 
         whatItMeans: 'Indica un patrón que merece revisión.',
         caveat,
         ctas: ['methodology', 'listen', 'share'],
+        conclusions: ['test conclusion'],
       },
       source: 'llm',
     };

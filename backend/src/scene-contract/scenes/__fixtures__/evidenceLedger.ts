@@ -10,6 +10,7 @@ export const validEvidenceLedger = {
   ],
   itemCaptions: ['Un solo oferente.', 'Valor 3x sobre la mediana.'],
   order: 'severity',
+  narration: 'Fixture narration for evidence ledger.',
 };
 
 // invalid: order not in enum

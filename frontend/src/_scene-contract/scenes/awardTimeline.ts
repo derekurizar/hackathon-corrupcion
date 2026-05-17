@@ -15,6 +15,7 @@ const AwardTimelineSchema = z.object({
   missingStages: z.array(z.string()),
   highlightIdx: z.number().int(),
   caption: z.string(),
+  narration: z.string(),
 });
 
 export const awardTimeline: SceneDescriptor = {
@@ -29,5 +30,6 @@ export const awardTimeline: SceneDescriptor = {
     'missingStages[]': 'bound',
     highlightIdx: 'presentational',
     caption: 'presentational',
+    narration: 'presentational',
   },
 };

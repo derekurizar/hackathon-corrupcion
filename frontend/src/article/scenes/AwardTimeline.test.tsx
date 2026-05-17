@@ -8,9 +8,7 @@ import { sampleInvestigation } from './__fixtures__/coverHeadline';
 
 describe('AwardTimeline', () => {
   it('fixture validates against the synced scene-contract schema', () => {
-    expect(
-      SCENES.AwardTimeline?.schema.safeParse(awardTimelineParams).success,
-    ).toBe(true);
+    expect(SCENES.AwardTimeline?.schema.safeParse(awardTimelineParams).success).toBe(true);
   });
 
   it('renders events, the i18n kind label, and the hardcoded SIN DATO PÚBLICO', () => {
@@ -25,5 +23,6 @@ describe('AwardTimeline', () => {
     expect(screen.getAllByText('Adjudicación').length).toBeGreaterThan(0);
     expect(screen.getAllByText('ADJUDICADO').length).toBeGreaterThan(0);
     expect(screen.getByText('SIN DATO PÚBLICO')).toBeInTheDocument();
+    expect(screen.getByText('Fixture narration for award timeline.')).toBeInTheDocument();
   });
 });

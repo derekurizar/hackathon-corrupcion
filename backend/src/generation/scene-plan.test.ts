@@ -86,6 +86,7 @@ describe('resolveScenePlan', () => {
             buyer: 'Ministerio de Salud',
             supplierDisplay: 'Proveedor A',
             reviewPriority: 'high',
+            intro: 'Una introducción de prueba al expediente.',
           },
         },
       },

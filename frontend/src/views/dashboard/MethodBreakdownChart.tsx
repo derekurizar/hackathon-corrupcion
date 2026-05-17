@@ -64,7 +64,10 @@ export default function MethodBreakdownChart({ methodBreakdown }: Props) {
             <YAxis
               type="category"
               dataKey="name"
-              width={140}
+              width={150}
+              tickFormatter={(v: string) =>
+                v.length > 26 ? v.slice(0, 26).trimEnd() + '…' : v
+              }
               tick={{ fill: '#5A5A5E', fontSize: 11 }}
               axisLine={false}
               tickLine={false}

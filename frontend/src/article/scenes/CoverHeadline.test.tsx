@@ -7,9 +7,7 @@ import { coverHeadlineParams, sampleInvestigation } from './__fixtures__/coverHe
 
 describe('CoverHeadline', () => {
   it('fixture validates against the synced scene-contract schema', () => {
-    expect(SCENES.CoverHeadline?.schema.safeParse(coverHeadlineParams).success).toBe(
-      true,
-    );
+    expect(SCENES.CoverHeadline?.schema.safeParse(coverHeadlineParams).success).toBe(true);
   });
 
   it('renders the headline, kicker, dek and buyer', () => {
@@ -26,8 +24,7 @@ describe('CoverHeadline', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/COMPRAS PÚBLICAS/i)).toBeInTheDocument();
-    expect(
-      screen.getAllByText(/Ministerio de Salud Pública/i).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Ministerio de Salud Pública/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('Fixture intro paragraph for cover headline.')).toBeInTheDocument();
   });
 });

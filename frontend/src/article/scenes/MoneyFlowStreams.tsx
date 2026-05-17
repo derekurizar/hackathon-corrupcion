@@ -23,6 +23,7 @@ interface MoneyFlowStreamsParams {
   streams: MoneyFlowStream[];
   emphasisSupplierId: string;
   caption: string;
+  narration: string;
 }
 
 interface MoneyFlowStreamsProps {
@@ -64,6 +65,11 @@ export default function MoneyFlowStreams({ params }: MoneyFlowStreamsProps) {
 
   return (
     <div ref={ref}>
+      {p.narration && (
+        <p className="font-body text-body-sm text-text-mid text-pretty max-w-[60ch] mb-4">
+          {p.narration}
+        </p>
+      )}
       <div className="relative w-full">
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
@@ -83,21 +89,11 @@ export default function MoneyFlowStreams({ params }: MoneyFlowStreamsProps) {
                 key={s.supplierId}
                 d={d}
                 fill="none"
-                stroke={
-                  emphasized ? 'rgba(225,6,0,0.4)' : 'rgba(154,154,160,0.28)'
-                }
+                stroke={emphasized ? 'rgba(225,6,0,0.4)' : 'rgba(154,154,160,0.28)'}
                 strokeWidth={w}
                 strokeLinecap="round"
-                initial={
-                  reduce
-                    ? { pathLength: 1, opacity: 1 }
-                    : { pathLength: 0, opacity: 0 }
-                }
-                animate={
-                  inView
-                    ? { pathLength: 1, opacity: 1 }
-                    : { pathLength: 0, opacity: 0 }
-                }
+                initial={reduce ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+                animate={inView ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                 transition={pathTransition(i)}
                 onAnimationComplete={() => {
                   if (i === streams.length - 1) setNodesIn(true);
@@ -115,16 +111,8 @@ export default function MoneyFlowStreams({ params }: MoneyFlowStreamsProps) {
             stroke="#262629"
             strokeWidth={1}
             initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0 }}
-            animate={
-              inView
-                ? { opacity: 1, scale: 1 }
-                : { opacity: 0, scale: 0 }
-            }
-            transition={
-              reduce
-                ? { duration: 0.2 }
-                : { type: 'spring', bounce: 0.15, delay: 0.1 }
-            }
+            animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
+            transition={reduce ? { duration: 0.2 } : { type: 'spring', bounce: 0.15, delay: 0.1 }}
             style={{ transformOrigin: `${BUYER_X}px ${buyerY}px` }}
           />
 
@@ -142,15 +130,9 @@ export default function MoneyFlowStreams({ params }: MoneyFlowStreamsProps) {
                 stroke={emphasized ? '#E10600' : '#262629'}
                 strokeWidth={emphasized ? 2 : 1}
                 initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0 }}
-                animate={
-                  nodesIn
-                    ? { opacity: 1, scale: 1 }
-                    : { opacity: 0, scale: reduce ? 1 : 0 }
-                }
+                animate={nodesIn ? { opacity: 1, scale: 1 } : { opacity: 0, scale: reduce ? 1 : 0 }}
                 transition={
-                  reduce
-                    ? { duration: 0.2 }
-                    : { type: 'spring', bounce: 0.15, delay: i * 0.06 }
+                  reduce ? { duration: 0.2 } : { type: 'spring', bounce: 0.15, delay: i * 0.06 }
                 }
                 style={{ transformOrigin: `${SUPPLIER_X}px ${y}px` }}
               />
@@ -176,9 +158,7 @@ export default function MoneyFlowStreams({ params }: MoneyFlowStreamsProps) {
                   marginLeft: '1.5rem',
                 }}
               >
-                <p className="font-body text-body-sm text-text-hi">
-                  {s.supplierDisplay}
-                </p>
+                <p className="font-body text-body-sm text-text-hi">{s.supplierDisplay}</p>
                 <p className="numeric-tabular font-body text-[11px] text-text-mid">
                   {formatInt(s.amount, i18n.language)} · {formatShare(s.share)}
                 </p>

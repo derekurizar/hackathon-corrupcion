@@ -15,6 +15,7 @@ const CoverHeadlineSchema = z.object({
   buyer: z.string(),
   supplierDisplay: z.string(),
   reviewPriority: z.enum(['high', 'medium', 'low']),
+  intro: z.string(),
 });
 
 export const coverHeadline: SceneDescriptor = {
@@ -32,5 +33,6 @@ export const coverHeadline: SceneDescriptor = {
     buyer: 'bound',
     supplierDisplay: 'bound',
     reviewPriority: 'bound',
+    intro: 'presentational',
   },
 };

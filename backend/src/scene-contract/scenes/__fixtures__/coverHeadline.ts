@@ -12,6 +12,7 @@ export const validCoverHeadline = {
   buyer: 'Ministerio de Salud',
   supplierDisplay: 'Proveedor A',
   reviewPriority: 'high',
+  intro: 'Fixture intro paragraph for cover headline.',
 };
 
 // invalid: bgVariant is not in the enum

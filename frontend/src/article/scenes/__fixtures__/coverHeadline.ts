@@ -6,6 +6,7 @@ export const coverHeadlineParams = {
   headline: 'Ministerio de Salud — señales de revisión',
   dek: 'Un patrón de adjudicaciones que vale la pena revisar en detalle.',
   bgVariant: 'duotone' as const,
+  intro: 'Fixture intro paragraph for cover headline.',
   heroStat: {
     label: 'Valor total revisado',
     value: 3_200_000,

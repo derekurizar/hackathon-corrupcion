@@ -12,12 +12,15 @@ import * as lambdaNode from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 
 // CDK requires a Stack subclass; this is the documented exception to the
 // codebase "no classes" rule.
 export class OpenContractStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+
+    const siteDomain = 'expediente-publico.urizarhub.dev';
 
     // ── S3 Buckets ────────────────────────────────────────────────────────────
 
@@ -99,6 +102,12 @@ export class OpenContractStack extends Stack {
       apiName: 'open-contract-api',
       // required: throttle lives on the stage, not HttpApiProps
       createDefaultStage: false,
+      corsPreflight: {
+        allowOrigins: ['*'],
+        allowMethods: [apigwv2.CorsHttpMethod.ANY],
+        allowHeaders: ['Content-Type', 'Accept', 'Authorization'],
+        maxAge: Duration.days(1),
+      },
     });
 
     new apigwv2.HttpStage(this, 'DefaultStage', {
@@ -159,7 +168,14 @@ export class OpenContractStack extends Stack {
       ),
     });
 
+    const certificate = new acm.Certificate(this, 'SiteCertificate', {
+      domainName: siteDomain,
+      validation: acm.CertificateValidation.fromDns(),
+    });
+
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
+      domainNames: [siteDomain],
+      certificate,
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(webBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -268,6 +284,16 @@ export class OpenContractStack extends Stack {
     new CfnOutput(this, 'ApiEndpoint', {
       value: httpApi.apiEndpoint,
       description: 'HTTP API v2 base URL (also available at <CloudFront>/api/*)',
+    });
+
+    new CfnOutput(this, 'SiteUrl', {
+      value: `https://${siteDomain}`,
+      description: 'Custom domain URL for the SPA',
+    });
+
+    new CfnOutput(this, 'DnsSetupInstruction', {
+      value: `CNAME ${siteDomain} → ${distribution.distributionDomainName}`,
+      description: 'Add this CNAME at your DNS provider; cdk deploy will wait until ACM validates it',
     });
   }
 }

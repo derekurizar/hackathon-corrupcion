@@ -79,11 +79,11 @@ describe('checkGuardrails', () => {
     expect(r.ok).toBe(false);
   });
 
-  it('raw individual name leak → fail', () => {
+  it('HACKATHON MODE: individual name in output → ok (leak check removed)', () => {
     const s = story();
     s.es.elCaso = 'PEREZ,LOPEZ,,JUAN, recibió 650000.';
     const r = checkGuardrails(s, bundle(), 'PEREZ,LOPEZ,,JUAN,', 'individual', BANNED_PHRASES);
-    expect(r.ok).toBe(false);
+    expect(r.ok).toBe(true);
   });
 
   it('keyFinding maps to FULL bundle.evidence, not the prompt sample', () => {
@@ -160,21 +160,22 @@ describe('generateStoryGuarded — never throws, retry-then-fallback', () => {
     expect(gen).toHaveBeenCalledTimes(2); // initial + one stricter retry
   });
 
-  it('individual name leak every time → retry then fallback', async () => {
-    const leak = story();
-    leak.es.elCaso = 'PEREZ,LOPEZ,,JUAN, ganó el contrato';
-    const gen = vi.fn(async () => leak);
+  it('HACKATHON MODE: individual name in output → no fallback, no retry', async () => {
+    const named = story();
+    named.es.elCaso = 'PEREZ,LOPEZ,,JUAN, ganó el contrato por 650000.';
+    const gen = vi.fn(async () => named);
     const client: ClaudeClient = { generateStory: gen };
     const out = await generateStoryGuarded(
       client,
       bundle(),
-      'un proveedor individual',
-      'an individual supplier',
+      'PEREZ,LOPEZ,,JUAN,',
+      'PEREZ,LOPEZ,,JUAN,',
       'PEREZ,LOPEZ,,JUAN,',
       'individual',
     );
-    expect(out.usedFallback).toBe(true);
-    expect(gen).toHaveBeenCalledTimes(2);
+    expect(out.usedFallback).toBe(false);
+    expect(out.story).not.toBeNull();
+    expect(gen).toHaveBeenCalledTimes(1);
   });
 
   it('client throws every time → fallback, never throws', async () => {

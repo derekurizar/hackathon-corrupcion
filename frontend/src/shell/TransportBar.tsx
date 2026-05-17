@@ -4,6 +4,7 @@ import { m } from 'framer-motion';
 import type { Chapter } from '@/_scene-contract';
 import { useMode, type NavMode } from './ModeContext';
 import { useArticleState } from '@/article/ArticleStateContext';
+import { useAmbientAudio } from './useAmbientAudio';
 import { cn } from '@/lib/utils';
 
 const MODES = [
@@ -32,6 +33,7 @@ export function TransportBar() {
   const { t, i18n } = useTranslation();
   const { mode, setMode } = useMode();
   const { progress, activeChapter, audioController } = useArticleState();
+  const { enabled: ambientOn, toggle: toggleAmbient } = useAmbientAudio();
   const [playing, setPlaying] = useState(false);
 
   const pct = Math.round(progress * 100);
@@ -152,6 +154,57 @@ export function TransportBar() {
           );
         })}
       </div>
+
+      {/* Ambient sound toggle — page-wide audio bed (on by default) */}
+      <m.button
+        type="button"
+        onClick={toggleAmbient}
+        aria-label={ambientOn ? t('audio.ambientOn') : t('audio.ambientOff')}
+        aria-pressed={ambientOn}
+        whileTap={{ scale: 0.88 }}
+        className={cn(
+          'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-bg-panel-2',
+          ambientOn
+            ? 'border-accent-red text-accent-red red-glow-box'
+            : 'border-line text-text-dim',
+        )}
+      >
+        {ambientOn ? (
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            aria-hidden="true"
+            fill="currentColor"
+          >
+            <path d="M1 5h2.5L7 2v10L3.5 9H1z" />
+            <path
+              d="M9 4.5a3 3 0 0 1 0 5M10.8 2.7a5.5 5.5 0 0 1 0 8.6"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
+        ) : (
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            aria-hidden="true"
+            fill="currentColor"
+          >
+            <path d="M1 5h2.5L7 2v10L3.5 9H1z" />
+            <path
+              d="M9.5 5l3.5 4M13 5l-3.5 4"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
+        )}
+      </m.button>
 
       {/* Zone 3 — language toggle */}
       <button

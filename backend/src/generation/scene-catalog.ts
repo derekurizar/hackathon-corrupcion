@@ -46,6 +46,10 @@ export function renderSceneCatalog(): string {
     '    the field `<x>Ref` — set to the exact `ev:<i>` whose value equals it.',
     '  - a `*Ref`/`ref`/`valueRef` leaf: set it to an `ev:<i>` that resolves.',
     '  - presentational: free prose/order; keep any enum/tuple values valid.',
+    "- For any 'narration', 'intro', or 'conclusions' presentational field, " +
+      'write 2–3 plain-language sentences explaining what the scene shows and ' +
+      'why it merits review. Use precise, sober newsroom language accessible ' +
+      'to non-technical readers.',
     '- Every scene-schema constraint (enums, tuple shape, array min/max) still',
     '  applies; when unsure, use the (default) scene.',
     '',

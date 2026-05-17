@@ -8,10 +8,7 @@ import { sampleInvestigation } from './__fixtures__/coverHeadline';
 
 describe('MoneyFlowStreams', () => {
   it('fixture validates against the synced scene-contract schema', () => {
-    expect(
-      SCENES.MoneyFlowStreams?.schema.safeParse(moneyFlowStreamsParams)
-        .success,
-    ).toBe(true);
+    expect(SCENES.MoneyFlowStreams?.schema.safeParse(moneyFlowStreamsParams).success).toBe(true);
   });
 
   it('renders the caption and every supplier label', () => {
@@ -22,10 +19,9 @@ describe('MoneyFlowStreams', () => {
         chapter="sigueElDinero"
       />,
     );
-    expect(
-      screen.getByRole('img', { name: /La mayor parte del valor/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /La mayor parte del valor/i })).toBeInTheDocument();
     expect(screen.getByText('Proveedor anónimo A')).toBeInTheDocument();
     expect(screen.getByText('Proveedor anónimo B')).toBeInTheDocument();
+    expect(screen.getByText('Fixture narration for money flow.')).toBeInTheDocument();
   });
 });

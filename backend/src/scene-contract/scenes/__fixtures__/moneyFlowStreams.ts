@@ -22,6 +22,7 @@ export const validMoneyFlowStreams = {
   ],
   emphasisSupplierId: 'GT-NIT:1234567',
   caption: 'El flujo del dinero se concentra en un proveedor.',
+  narration: 'Fixture narration for money flow.',
 };
 
 // invalid: streams is empty (.min(1))

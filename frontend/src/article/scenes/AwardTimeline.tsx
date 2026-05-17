@@ -19,6 +19,7 @@ interface AwardTimelineParams {
   missingStages: string[];
   highlightIdx: number;
   caption: string;
+  narration: string;
 }
 
 interface AwardTimelineProps {
@@ -49,7 +50,13 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
 
   return (
     <div ref={ref}>
-      <p className="mb-10 kicker">{p.caption}</p>
+      <p className="mb-4 kicker">{p.caption}</p>
+
+      {p.narration && (
+        <p className="font-body text-body-sm text-text-mid text-pretty max-w-[60ch] mb-4">
+          {p.narration}
+        </p>
+      )}
 
       {/* Desktop — horizontal spine */}
       <div className="relative hidden h-[260px] md:block">
@@ -59,16 +66,11 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
           style={{ transformOrigin: 'left center' }}
           initial={{ scaleX: 0 }}
           animate={inView ? { scaleX: 1 } : { scaleX: 0 }}
-          transition={
-            reduce
-              ? { duration: 0.1 }
-              : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
-          }
+          transition={reduce ? { duration: 0.1 } : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         />
         {events.map((e, i) => {
           // Inset the track so edge markers + labels never clip (8%–92%).
-          const xFrac =
-            n === 1 ? 0.5 : 0.08 + (i / (n - 1)) * 0.84;
+          const xFrac = n === 1 ? 0.5 : 0.08 + (i / (n - 1)) * 0.84;
           const highlighted = i === p.highlightIdx;
           return (
             <div
@@ -82,20 +84,10 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
               <m.div
                 className={cn(
                   'h-3 w-3 rounded-full',
-                  highlighted
-                    ? 'red-glow-box bg-accent-red'
-                    : 'bg-text-mid',
+                  highlighted ? 'red-glow-box bg-accent-red' : 'bg-text-mid',
                 )}
-                initial={
-                  reduce
-                    ? { opacity: 0 }
-                    : { opacity: 0, scale: 0 }
-                }
-                animate={
-                  inView
-                    ? { opacity: 1, scale: 1 }
-                    : { opacity: 0, scale: 0 }
-                }
+                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0 }}
+                animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
                 transition={
                   reduce
                     ? { duration: 0.15 }
@@ -116,9 +108,7 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
                 }}
               >
                 <p className="kicker">{t(KIND_KEY[e.kind])}</p>
-                <p className="mt-1 font-body text-body-sm text-text-hi">
-                  {e.label}
-                </p>
+                <p className="mt-1 font-body text-body-sm text-text-hi">{e.label}</p>
                 <p className="font-body text-[11px] text-text-dim">{e.date}</p>
               </m.div>
             </div>
@@ -134,11 +124,7 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
           style={{ transformOrigin: 'top center' }}
           initial={{ scaleY: 0 }}
           animate={inView ? { scaleY: 1 } : { scaleY: 0 }}
-          transition={
-            reduce
-              ? { duration: 0.1 }
-              : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
-          }
+          transition={reduce ? { duration: 0.1 } : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         />
         {events.map((e, i) => {
           const highlighted = i === p.highlightIdx;
@@ -147,16 +133,12 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
               <span
                 className={cn(
                   'absolute -left-[5px] top-1 h-3 w-3 rounded-full',
-                  highlighted
-                    ? 'red-glow-box bg-accent-red'
-                    : 'bg-text-mid',
+                  highlighted ? 'red-glow-box bg-accent-red' : 'bg-text-mid',
                 )}
                 aria-hidden="true"
               />
               <p className="kicker">{t(KIND_KEY[e.kind])}</p>
-              <p className="mt-1 font-body text-body-sm text-text-hi">
-                {e.label}
-              </p>
+              <p className="mt-1 font-body text-body-sm text-text-hi">{e.label}</p>
               <p className="font-body text-[11px] text-text-dim">{e.date}</p>
             </div>
           );

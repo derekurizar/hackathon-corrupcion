@@ -1,5 +1,6 @@
 import type { Chapter, SceneSignal, SceneEvidenceItem, SceneInvestigation } from './types.js';
 import { flattenCaseEvidence } from './refs.js';
+import { formatBenchmark } from './benchmark.js';
 
 /**
  * The mandatory non-empty caveat (idea/05 validator rule 5). Fixed,
@@ -50,6 +51,10 @@ export function deriveFromEvidence(
         buyer: investigation.buyer.name,
         supplierDisplay: investigation.supplier.displayNameEs,
         reviewPriority: investigation.reviewPriority,
+        intro:
+          'Este expediente contiene señales estadísticas que merecen revisión ' +
+          'editorial. Los patrones identificados en los contratos analizados ' +
+          'presentan características inusuales respecto al universo comparable.',
       };
     }
 
@@ -86,6 +91,7 @@ export function deriveFromEvidence(
         ],
         emphasisSupplierId: investigation.supplier.id,
         caption: PLACEHOLDER_ES,
+        narration: 'Distribución del valor total de contratos por proveedor.',
       };
     }
 
@@ -106,6 +112,7 @@ export function deriveFromEvidence(
           },
         ],
         caption: PLACEHOLDER_ES,
+        narration: 'Concentración de adjudicaciones para el comprador.',
       };
     }
 
@@ -117,7 +124,8 @@ export function deriveFromEvidence(
                 field: e.field,
                 value: e.value,
               };
-              if (e.benchmark !== undefined) item['benchmark'] = e.benchmark;
+              if (e.benchmark !== undefined)
+                item['benchmark'] = formatBenchmark(e.benchmark);
               if (e.comparison !== undefined) item['comparison'] = e.comparison;
               return item;
             })
@@ -126,6 +134,7 @@ export function deriveFromEvidence(
         items,
         itemCaptions: items.map(() => PLACEHOLDER_ES),
         order: 'original',
+        narration: 'Señales de revisión detectadas en este expediente.',
       };
     }
 
@@ -135,6 +144,7 @@ export function deriveFromEvidence(
         missingStages: ['published', 'tenderClose', 'contractSigned'],
         highlightIdx: 0,
         caption: PLACEHOLDER_ES,
+        narration: 'Cronología de hitos del proceso de contratación.',
       };
     }
 
@@ -143,6 +153,10 @@ export function deriveFromEvidence(
         whatItMeans: PLACEHOLDER_ES,
         caveat: FIXED_CAVEAT,
         ctas: ['methodology', 'listen', 'share'],
+        conclusions: [
+          'Las señales detectadas sugieren patrones que ameritan revisión ' +
+            'periodística adicional.',
+        ],
       };
     }
   }

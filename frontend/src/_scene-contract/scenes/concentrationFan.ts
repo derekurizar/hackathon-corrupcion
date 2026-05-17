@@ -19,6 +19,7 @@ const ConcentrationFanSchema = z.object({
     )
     .min(1),
   caption: z.string(),
+  narration: z.string(),
 });
 
 export const concentrationFan: SceneDescriptor = {
@@ -37,5 +38,6 @@ export const concentrationFan: SceneDescriptor = {
     'suppliers[].shareRef': 'quant',
     'suppliers[].flagged': 'bound',
     caption: 'presentational',
+    narration: 'presentational',
   },
 };

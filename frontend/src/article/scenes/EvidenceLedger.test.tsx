@@ -8,9 +8,7 @@ import { sampleInvestigation } from './__fixtures__/coverHeadline';
 
 describe('EvidenceLedger', () => {
   it('fixture validates against the synced scene-contract schema', () => {
-    expect(
-      SCENES.EvidenceLedger?.schema.safeParse(evidenceLedgerParams).success,
-    ).toBe(true);
+    expect(SCENES.EvidenceLedger?.schema.safeParse(evidenceLedgerParams).success).toBe(true);
   });
 
   it('renders every evidence card field, value and comparison', () => {
@@ -21,13 +19,10 @@ describe('EvidenceLedger', () => {
         chapter="evidencia"
       />,
     );
-    expect(
-      screen.getByText(/Cuota del proveedor principal/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Cuota del proveedor principal/i)).toBeInTheDocument();
     expect(screen.getByText('82%')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Casi el doble del promedio/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Casi el doble del promedio/i)).toBeInTheDocument();
     expect(screen.getByText('14')).toBeInTheDocument();
+    expect(screen.getByText('Fixture narration for evidence ledger.')).toBeInTheDocument();
   });
 });

@@ -19,10 +19,7 @@ export const evidenceLedgerParams = {
       comparison: 'Concentrados en una ventana corta.',
     },
   ],
-  itemCaptions: [
-    'Concentración alta.',
-    'Método no competitivo.',
-    'Volumen elevado.',
-  ],
+  itemCaptions: ['Concentración alta.', 'Método no competitivo.', 'Volumen elevado.'],
   order: 'original' as const,
+  narration: 'Fixture narration for evidence ledger.',
 };

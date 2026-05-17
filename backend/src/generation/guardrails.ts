@@ -9,7 +9,6 @@ const log = moduleLogger('guardrails');
 function checkLabel(reason: string): string {
   if (reason.startsWith('banned phrase')) return 'banned_phrase';
   if (reason.startsWith('unbacked keyFinding')) return 'keyfinding_untraced';
-  if (reason.startsWith('raw individual name')) return 'name_leak';
   return 'unknown';
 }
 
@@ -44,14 +43,17 @@ function collectStrings(story: ClaudeStoryRaw): string[] {
  *  1. No banned phrase anywhere in the output (case-insensitive).
  *  2. Every keyFinding (es + en) traces to at least one evidence item
  *     (substring either direction on `field` or `String(value)`).
- *  3. When entityType ∈ {individual, unknown}, the raw supplier name never
- *     appears in any output string.
+ *
+ * HACKATHON MODE: the raw-individual-name leak check was removed — entity
+ * names are shown verbatim. The `_rawSupplierName` / `_entityTypeHint`
+ * parameters are retained so callers (incl. `generateStoryGuarded`) keep an
+ * unchanged positional call signature.
  */
 export function checkGuardrails(
   story: ClaudeStoryRaw,
   bundle: CaseBundle,
-  rawSupplierName: string,
-  entityTypeHint: 'company' | 'individual' | 'unknown',
+  _rawSupplierName: string,
+  _entityTypeHint: 'company' | 'individual' | 'unknown',
   bannedPhrases: string[],
 ): GuardrailCheckResult {
   const strings = collectStrings(story);
@@ -83,17 +85,6 @@ export function checkGuardrails(
         ok: false,
         reason: `unbacked keyFinding: "${finding}"`,
       };
-    }
-  }
-
-  // 3 — no raw individual name leak
-  if (
-    (entityTypeHint === 'individual' || entityTypeHint === 'unknown') &&
-    rawSupplierName.trim().length > 0
-  ) {
-    const raw = rawSupplierName.toLowerCase();
-    if (lower.some((s) => s.includes(raw))) {
-      return { ok: false, reason: 'raw individual name leaked' };
     }
   }
 

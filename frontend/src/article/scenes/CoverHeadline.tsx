@@ -19,6 +19,7 @@ interface CoverHeadlineParams {
   headline: string;
   dek: string;
   bgVariant: 'dark' | 'duotone' | 'redGlow';
+  intro: string;
   heroStat: { label: string; value: number; unit: string; ref: string };
   buyer: string;
   supplierDisplay: string;
@@ -101,9 +102,7 @@ export default function CoverHeadline({ params }: CoverHeadlineProps) {
         <div className="mt-4 overflow-hidden">
           <m.h1
             className="headline-display text-display-2xl text-text-hi text-balance"
-            initial={
-              reduce ? { opacity: 0 } : { y: '110%', opacity: 0 }
-            }
+            initial={reduce ? { opacity: 0 } : { y: '110%', opacity: 0 }}
             animate={reduce ? { opacity: 1 } : { y: '0%', opacity: 1 }}
             transition={{
               duration: reduce ? 0.4 : 0.72,
@@ -124,15 +123,19 @@ export default function CoverHeadline({ params }: CoverHeadlineProps) {
           {p.dek}
         </m.p>
 
+        {p.intro && (
+          <p className="font-body text-body-md text-text-mid text-pretty max-w-[56ch] mt-4 mb-6">
+            {p.intro}
+          </p>
+        )}
+
         {/* Row B — stat bar */}
         <div className="mt-12 flex flex-col gap-6 border-t border-line pt-8 md:flex-row md:items-center md:gap-10">
           <div>
             <p className="kicker">
               {p.heroStat.label}
               {p.heroStat.unit ? (
-                <span className="ml-2 text-text-dim">
-                  · {p.heroStat.unit}
-                </span>
+                <span className="ml-2 text-text-dim">· {p.heroStat.unit}</span>
               ) : null}
             </p>
             <p
@@ -145,40 +148,24 @@ export default function CoverHeadline({ params }: CoverHeadlineProps) {
             </p>
           </div>
 
-          <span
-            aria-hidden="true"
-            className="hidden h-12 w-px bg-line md:block"
-          />
+          <span aria-hidden="true" className="hidden h-12 w-px bg-line md:block" />
 
           <div className="flex flex-col gap-1">
             <p className="kicker">{t('article.heroBuyer')}</p>
             <p className="font-body text-body-md text-text-hi">{p.buyer}</p>
             <p className="mt-2 kicker">{t('article.heroSupplier')}</p>
-            <p className="font-body text-body-md text-text-mid">
-              {p.supplierDisplay}
-            </p>
+            <p className="font-body text-body-md text-text-mid">{p.supplierDisplay}</p>
           </div>
 
-          <span
-            aria-hidden="true"
-            className="hidden h-12 w-px bg-line md:block"
-          />
+          <span aria-hidden="true" className="hidden h-12 w-px bg-line md:block" />
 
           <div
             className={cn(
               'inline-flex w-fit items-center gap-2 rounded-full border border-line px-3 py-1.5',
             )}
           >
-            <span
-              aria-hidden="true"
-              className={cn('h-2 w-2 rounded-full', prio.dot)}
-            />
-            <span
-              className={cn(
-                'font-body text-[11px] uppercase tracking-label',
-                prio.text,
-              )}
-            >
+            <span aria-hidden="true" className={cn('h-2 w-2 rounded-full', prio.dot)} />
+            <span className={cn('font-body text-[11px] uppercase tracking-label', prio.text)}>
               {t(prio.key)}
             </span>
           </div>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { anonymizeSupplier } from './anonymize.js';
 
-describe('anonymizeSupplier (idea/00 individual-anonymization rule)', () => {
+describe('anonymizeSupplier (HACKATHON MODE — masking disabled)', () => {
   it('company → verbatim name, not individual', () => {
     const a = anonymizeSupplier({
       _id: 'GT-NIT:123',
@@ -16,7 +16,7 @@ describe('anonymizeSupplier (idea/00 individual-anonymization rule)', () => {
     });
   });
 
-  it('individual → anonymized labels, isIndividual true', () => {
+  it('individual → verbatim name, isIndividual still true (no masking)', () => {
     const a = anonymizeSupplier({
       _id: 'GT-NIT:456',
       name: 'PEREZ,LOPEZ,,JUAN,',
@@ -24,22 +24,23 @@ describe('anonymizeSupplier (idea/00 individual-anonymization rule)', () => {
     });
     expect(a).toEqual({
       id: 'GT-NIT:456',
-      displayNameEs: 'un proveedor individual',
-      displayNameEn: 'an individual supplier',
+      displayNameEs: 'PEREZ,LOPEZ,,JUAN,',
+      displayNameEn: 'PEREZ,LOPEZ,,JUAN,',
       isIndividual: true,
     });
-    expect(a.displayNameEs).not.toContain('PEREZ');
-    expect(a.displayNameEn).not.toContain('JUAN');
   });
 
-  it('unknown → treated as individual (privacy-safe)', () => {
+  it('unknown → verbatim name, isIndividual false (only individual is true)', () => {
     const a = anonymizeSupplier({
       _id: 'GT-NIT:789',
       name: 'AMBIGUOUS NAME',
       entityType: 'unknown',
     });
-    expect(a.isIndividual).toBe(true);
-    expect(a.displayNameEs).toBe('un proveedor individual');
-    expect(a.displayNameEn).toBe('an individual supplier');
+    expect(a).toEqual({
+      id: 'GT-NIT:789',
+      displayNameEs: 'AMBIGUOUS NAME',
+      displayNameEn: 'AMBIGUOUS NAME',
+      isIndividual: false,
+    });
   });
 });

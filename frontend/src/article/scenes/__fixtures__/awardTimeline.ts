@@ -17,4 +17,5 @@ export const awardTimelineParams = {
   missingStages: ['tenderClose'],
   highlightIdx: 1,
   caption: 'Adjudicación rápida tras la publicación.',
+  narration: 'Fixture narration for award timeline.',
 };

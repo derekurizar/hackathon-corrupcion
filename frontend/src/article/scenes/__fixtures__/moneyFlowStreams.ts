@@ -23,4 +23,5 @@ export const moneyFlowStreamsParams = {
   ],
   emphasisSupplierId: 'sup-1',
   caption: 'La mayor parte del valor fluyó hacia un solo proveedor.',
+  narration: 'Fixture narration for money flow.',
 };

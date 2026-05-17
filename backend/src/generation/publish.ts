@@ -15,6 +15,7 @@ import type {
   SceneInvestigation,
 } from '../scene-contract/types.js';
 import { reviewPriority } from '../detection/review-priority.js';
+import { formatBenchmark } from '../scene-contract/benchmark.js';
 import { getByCaseKey, upsertInvestigationGuarded } from '../repositories/investigations.js';
 import { insertEdition } from '../repositories/editions.js';
 import { upsertDashboardStats } from '../repositories/dashboard-stats.js';
@@ -262,7 +263,7 @@ function toSceneSignals(bundle: CaseBundle): SceneSignal[] {
       field: e.field,
       value: e.value,
       ...(e.comparison !== undefined ? { comparison: e.comparison } : {}),
-      ...(e.benchmark !== undefined ? { benchmark: e.benchmark } : {}),
+      ...(e.benchmark !== undefined ? { benchmark: formatBenchmark(e.benchmark) } : {}),
     })),
   }));
 }
@@ -358,7 +359,7 @@ export async function publishInvestigations(args: PublishArgs): Promise<PublishR
       field: e.field,
       value: e.value,
       ...(e.comparison !== undefined ? { comparison: e.comparison } : {}),
-      ...(e.benchmark !== undefined ? { benchmark: e.benchmark } : {}),
+      ...(e.benchmark !== undefined ? { benchmark: formatBenchmark(e.benchmark) } : {}),
     }));
     const priority = reviewPriority(bundle.signals);
     const sceneInvestigation: SceneInvestigation = {

@@ -11,10 +11,7 @@ import { sampleInvestigation } from './__fixtures__/coverHeadline';
 
 describe('ClosingStatement', () => {
   it('fixture validates against the synced scene-contract schema', () => {
-    expect(
-      SCENES.ClosingStatement?.schema.safeParse(closingStatementParams)
-        .success,
-    ).toBe(true);
+    expect(SCENES.ClosingStatement?.schema.safeParse(closingStatementParams).success).toBe(true);
   });
 
   it('renders whatItMeans, the caveat, and the three fixed CTAs', () => {
@@ -26,18 +23,11 @@ describe('ClosingStatement', () => {
       />,
     );
     expect(screen.getByText(/Estos patrones merecen revisión/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/señales de revisión, no conclusiones/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /METODOLOGÍA/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /ESCUCHAR/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /COMPARTIR/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/señales de revisión, no conclusiones/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /METODOLOGÍA/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ESCUCHAR/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /COMPARTIR/i })).toBeInTheDocument();
+    expect(screen.getByText('Fixture conclusion sentence.')).toBeInTheDocument();
   });
 
   it('substitutes FIXED_CAVEAT when caveat is empty (never renders empty)', () => {

@@ -33,4 +33,5 @@ export const concentrationFanParams = {
     },
   ],
   caption: 'Un proveedor concentra la mayor parte del valor adjudicado.',
+  narration: 'Fixture narration for concentration fan.',
 };

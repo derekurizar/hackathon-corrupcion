@@ -14,6 +14,7 @@ const EvidenceLedgerSchema = z.object({
     .min(1),
   itemCaptions: z.array(z.string()),
   order: z.enum(['severity', 'field', 'original']),
+  narration: z.string(),
 });
 
 export const evidenceLedger: SceneDescriptor = {
@@ -27,5 +28,6 @@ export const evidenceLedger: SceneDescriptor = {
     'items[].comparison': 'bound',
     'itemCaptions[]': 'presentational',
     order: 'presentational',
+    narration: 'presentational',
   },
 };
