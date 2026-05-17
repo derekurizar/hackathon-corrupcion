@@ -54,19 +54,11 @@ describe.each(chapters)('deriveFromEvidence(%s)', (chapter) => {
   });
 
   it('round-trips through validateScenePlan to a renderable default entry', () => {
-    // Derived params carry no resolving refs. For chapters that HAVE quant
-    // params (cover/elCaso/sigueElDinero/lasConexiones) the safety net (rule 3)
-    // forces source:"fallback". For ref-free default scenes (evidencia /
-    // cronologia / cierre) the derived params are themselves the authoritative
-    // server truth and legitimately validate as source:"llm" — either way the
-    // article always renders the default scene. (Deviation from the dev plan's
-    // blanket "always fallback" — see return summary.)
-    const QUANT_FALLBACK_CHAPTERS: Chapter[] = [
-      'cover',
-      'elCaso',
-      'sigueElDinero',
-      'lasConexiones',
-    ];
+    // Hackathon-relaxed validator: quant refs (rule 3) and emphasis targets
+    // (rule 4) no longer force a fallback, so derived default-scene params —
+    // which are schema-valid by construction and carry the mandatory caveat —
+    // round-trip to source:"llm" for EVERY chapter. The article always renders
+    // the default scene regardless; only the `source` label changed.
     const params = deriveFromEvidence(chapter, signals, evidence, investigation);
     const out = validateScenePlan(
       chapter,
@@ -76,11 +68,7 @@ describe.each(chapters)('deriveFromEvidence(%s)', (chapter) => {
       investigation,
     );
     expect(out.sceneId).toBe(defaultScene(chapter));
-    if (QUANT_FALLBACK_CHAPTERS.includes(chapter)) {
-      expect(out.source).toBe('fallback');
-    } else {
-      expect(out.source).toBe('llm');
-    }
+    expect(out.source).toBe('llm');
     // Always renders: params satisfy the default scene schema.
     expect(SCENES[out.sceneId]!.schema.safeParse(out.params).success).toBe(true);
   });

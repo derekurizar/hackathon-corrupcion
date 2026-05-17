@@ -69,8 +69,8 @@ describe('validateScenePlan — full success', () => {
   });
 });
 
-describe('validateScenePlan — rule 1 (sceneId not in shortlist)', () => {
-  it('falls back when sceneId is not allowed for the chapter', () => {
+describe('validateScenePlan — rule 1 (sceneId must be a known scene for the chapter)', () => {
+  it('falls back when sceneId is not a registered scene', () => {
     const bad = { ...validCoverEntry(), sceneId: 'NotARealScene' };
     const out = validateScenePlan('cover', bad, signals, evidence, investigation);
     expect(out.source).toBe('fallback');
@@ -84,35 +84,32 @@ describe('validateScenePlan — rule 1 (sceneId not in shortlist)', () => {
   });
 });
 
-describe('validateScenePlan — rule 3 (quant ref must resolve; no value-match)', () => {
-  it('falls back when the quant ref does not resolve', () => {
+describe('validateScenePlan — rule 3 (hackathon-relaxed: quant refs never force fallback)', () => {
+  it('accepts (source:"llm") when a quant ref does not resolve', () => {
+    // Relaxed: `*Ref` strings are internal (never rendered). A non-resolving
+    // ref must not discard an otherwise-good LLM scene.
     const e = validCoverEntry();
     (e.params['heroStat'] as Record<string, unknown>)['ref'] = 'sig:does_not_exist';
     const out = validateScenePlan('cover', e, signals, evidence, investigation);
-    expect(out.source).toBe('fallback');
+    expect(out.source).toBe('llm');
   });
 
   it('accepts (source:"llm") when the quant value differs from the resolved ref row value', () => {
-    // New contract: the cited ref only needs to RESOLVE (traceability /
-    // no invented citations). The figure itself is the LLM's — legitimate
-    // numbers (shares, rollup aggregates, benchmark metrics) never appear as
-    // a single evidence cell, so a value-equality check forced a universal
-    // fallback. The figure no longer has to equal the cited row's `.value`.
     const e = validCoverEntry();
     (e.params['heroStat'] as Record<string, unknown>)['value'] = 999999;
     const out = validateScenePlan('cover', e, signals, evidence, investigation);
     expect(out.source).toBe('llm');
   });
 
-  it('falls back when the ref string is syntactically invalid', () => {
+  it('accepts (source:"llm") when the ref string is syntactically invalid', () => {
     const e = validCoverEntry();
     (e.params['heroStat'] as Record<string, unknown>)['ref'] = 'garbage';
     const out = validateScenePlan('cover', e, signals, evidence, investigation);
-    expect(out.source).toBe('fallback');
+    expect(out.source).toBe('llm');
   });
 });
 
-describe('validateScenePlan — rule 4 (presentational emphasis target must exist)', () => {
+describe('validateScenePlan — rule 4 (hackathon-relaxed: emphasis target never forces fallback)', () => {
   const flowSignals: SceneSignal[] = [
     {
       rule_id: 'supplier_concentration_per_buyer',
@@ -164,7 +161,9 @@ describe('validateScenePlan — rule 4 (presentational emphasis target must exis
     expect(out.source).toBe('llm');
   });
 
-  it('falls back when emphasisSupplierId does not match any in-scene id', () => {
+  it('accepts (source:"llm") even when emphasisSupplierId matches no in-scene id', () => {
+    // Relaxed: a mismatched emphasis pointer is cosmetic — it must not
+    // discard the whole LLM scene.
     const out = validateScenePlan(
       'sigueElDinero',
       flowEntry('GT-NIT:9999999'),
@@ -172,7 +171,7 @@ describe('validateScenePlan — rule 4 (presentational emphasis target must exis
       flowEvidence,
       investigation,
     );
-    expect(out.source).toBe('fallback');
+    expect(out.source).toBe('llm');
     expect(out.sceneId).toBe('MoneyFlowStreams');
   });
 });
