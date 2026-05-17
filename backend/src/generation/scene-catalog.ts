@@ -50,10 +50,14 @@ export function renderSceneCatalog(): string {
     '    rollups never appear as a single cell. Never invent a figure.',
     '  - a `*Ref`/`ref`/`valueRef` leaf: set it to an `ev:<i>` that resolves.',
     '  - presentational: free prose/order; keep any enum/tuple values valid.',
-    "- For any 'narration', 'intro', or 'conclusions' presentational field, " +
-      'write 2–3 plain-language sentences explaining what the scene shows and ' +
-      'why it merits review. Use precise, sober newsroom language accessible ' +
-      'to non-technical readers.',
+    "- For any 'narration' or 'intro' presentational field, write 2–3 " +
+      'plain-language sentences explaining what the scene shows and why it ' +
+      'merits review. Use precise, sober newsroom language accessible to ' +
+      'non-technical readers.',
+    "- ClosingStatement 'whatItMeans' and EACH 'conclusions' entry must be a " +
+      'FULL PARAGRAPH (3–5 sentences), not a one-line bullet — develop the ' +
+      'reasoning, connect the evidence, and state what it does and does not ' +
+      "imply. Provide 3–6 such conclusion paragraphs (not just one or two).",
     '- Every scene-schema constraint (enums, tuple shape, array min/max) still',
     "  applies; if unsure about a variant's exact schema, use the (default).",
     '',

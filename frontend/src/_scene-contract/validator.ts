@@ -8,7 +8,7 @@ import type {
 } from './types.js';
 import { SCENES } from './scenes/index.js';
 import { defaultScene } from './shortlist.js';
-import { deriveFromEvidence } from './derive.js';
+import { deriveFromEvidence, FIXED_CAVEAT } from './derive.js';
 import { parseRef, resolveRef } from './refs.js';
 
 type Seg = { key: string; array: boolean };
@@ -260,13 +260,21 @@ export function validateScenePlan(
   // dropped entirely (was: any `*Id`/emphasis target must reference an
   // existing id in the same scene).
 
-  // Rule 5 — ClosingStatement.caveat must be present & non-empty.
+  // Rule 5 (hackathon-relaxed) — ClosingStatement.caveat must be non-empty,
+  // but a missing/empty caveat is BACKFILLED (not a fallback trigger): the
+  // mandatory legal-safety wording is fixed server-side anyway.
   if (entry.sceneId === 'ClosingStatement') {
     const caveat = params['caveat'];
-    if (typeof caveat !== 'string' || caveat.trim().length === 0) return fb();
+    if (typeof caveat !== 'string' || caveat.trim().length === 0) {
+      params['caveat'] = FIXED_CAVEAT;
+    }
   }
 
-  // Final shape gate — the merged params must satisfy the scene schema.
+  // Rule 6 — the merged params must satisfy the scene schema. On failure we
+  // emit `source:'fallback'`; the publish layer detects this, collects the
+  // exact Zod issues, and asks the LLM to fix ONLY the broken fields
+  // (`repairScenePlan`) before falling back deterministically. Keeping a
+  // clean fail signal here is what makes that targeted repair possible.
   if (!descriptor.schema.safeParse(params).success) return fb();
 
   return { sceneId: entry.sceneId, params, source: 'llm' };

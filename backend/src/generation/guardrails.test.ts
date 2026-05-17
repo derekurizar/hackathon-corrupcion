@@ -140,7 +140,7 @@ describe('checkGuardrails', () => {
 describe('generateStoryGuarded — never throws, retry-then-fallback', () => {
   it('clean stub → usedFallback:false, no retry', async () => {
     const gen = vi.fn(async () => story());
-    const client: ClaudeClient = { generateStory: gen };
+    const client: ClaudeClient = { generateStory: gen, repairScenes: async () => ({}) };
     const out = await generateStoryGuarded(
       client,
       bundle(),
@@ -158,7 +158,7 @@ describe('generateStoryGuarded — never throws, retry-then-fallback', () => {
     const bad = story();
     bad.en.theCase = 'committed fraud';
     const gen = vi.fn(async () => bad);
-    const client: ClaudeClient = { generateStory: gen };
+    const client: ClaudeClient = { generateStory: gen, repairScenes: async () => ({}) };
     const out = await generateStoryGuarded(
       client,
       bundle(),
@@ -176,7 +176,7 @@ describe('generateStoryGuarded — never throws, retry-then-fallback', () => {
     const named = story();
     named.es.elCaso = 'PEREZ,LOPEZ,,JUAN, ganó el contrato por 650000.';
     const gen = vi.fn(async () => named);
-    const client: ClaudeClient = { generateStory: gen };
+    const client: ClaudeClient = { generateStory: gen, repairScenes: async () => ({}) };
     const out = await generateStoryGuarded(
       client,
       bundle(),
@@ -194,7 +194,7 @@ describe('generateStoryGuarded — never throws, retry-then-fallback', () => {
     const gen = vi.fn(async () => {
       throw new Error('rate_limit');
     });
-    const client: ClaudeClient = { generateStory: gen };
+    const client: ClaudeClient = { generateStory: gen, repairScenes: async () => ({}) };
     const out = await generateStoryGuarded(
       client,
       bundle(),

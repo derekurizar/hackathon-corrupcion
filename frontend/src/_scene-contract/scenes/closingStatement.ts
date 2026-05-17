@@ -6,7 +6,8 @@ const ClosingStatementSchema = z.object({
   // caveat is mandatory & non-empty (idea/05 validator rule 5).
   caveat: z.string().min(1),
   ctas: z.tuple([z.literal('methodology'), z.literal('listen'), z.literal('share')]),
-  conclusions: z.array(z.string()).min(1).max(3),
+  // Each conclusion is a full paragraph (not a one-liner); allow more of them.
+  conclusions: z.array(z.string()).min(1).max(6),
 });
 
 export const closingStatement: SceneDescriptor = {

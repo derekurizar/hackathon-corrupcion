@@ -201,11 +201,12 @@ describe('validateScenePlan — rule 5 (ClosingStatement caveat mandatory)', () 
     expect(out.source).toBe('llm');
   });
 
-  it('falls back when caveat is empty/whitespace', () => {
+  it('backfills (source:"llm") when caveat is empty/whitespace', () => {
+    // Hackathon-relaxed: an empty caveat no longer discards the LLM scene —
+    // the mandatory legal-safety wording is backfilled server-side.
     const out = validateScenePlan('cierre', closingEntry('   '), signals, evidence, investigation);
-    expect(out.source).toBe('fallback');
+    expect(out.source).toBe('llm');
     expect(out.sceneId).toBe('ClosingStatement');
-    expect(typeof out.params['caveat']).toBe('string');
-    expect((out.params['caveat'] as string).length).toBeGreaterThan(0);
+    expect((out.params['caveat'] as string).trim().length).toBeGreaterThan(0);
   });
 });

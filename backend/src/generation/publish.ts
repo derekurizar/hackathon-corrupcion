@@ -10,10 +10,12 @@ import {
   type Signal,
 } from '../schema/index.js';
 import type {
+  Chapter,
   SceneSignal,
   SceneEvidenceItem,
   SceneInvestigation,
 } from '../scene-contract/types.js';
+import { validateScenePlan } from '../scene-contract/validator.js';
 import { reviewPriority } from '../detection/review-priority.js';
 import { formatBenchmark } from '../scene-contract/benchmark.js';
 import { getByCaseKey, upsertInvestigationGuarded } from '../repositories/investigations.js';
@@ -24,7 +26,7 @@ import { generateStoryGuarded } from './guardrails.js';
 import { anonymizeSupplier, type AnonymizedSupplier } from './anonymize.js';
 import { buildCaseDigest, resolveDigestConfig, type CaseDigest } from './digest.js';
 import { loadConfig } from '../config/env.js';
-import { resolveScenePlan } from './scene-plan.js';
+import { resolveScenePlan, collectSceneZodFailures } from './scene-plan.js';
 import { buildEdition, recomputeDashboardStats } from './editions.js';
 import { FIXED_CAVEAT_ES, FIXED_CAVEAT_EN } from './prompt.js';
 import type { CaseBundle } from './rank.js';
@@ -390,6 +392,42 @@ export async function publishInvestigations(args: PublishArgs): Promise<PublishR
       resolveSceneSignals,
       [],
     );
+
+    // Targeted LLM repair: any chapter that fell back purely on the Zod
+    // schema gate (sceneId is valid, params aren't) gets its exact issues
+    // sent back to the model to fix ONLY the broken fields, then is
+    // re-validated. Successful fixes replace the deterministic fallback so
+    // the article keeps the LLM's content. One corrective shot; on any
+    // failure the deterministic fallback already in place stands.
+    if (!usedFallback && client !== null) {
+      const zodFailures = collectSceneZodFailures(llmScenePlan, resolvedScenePlan);
+      if (zodFailures.length > 0) {
+        const fixed = await client.repairScenes({
+          caseKey: bundle.caseKey,
+          failures: zodFailures,
+        });
+        for (const [chapter, fx] of Object.entries(fixed)) {
+          const revalidated = validateScenePlan(
+            chapter as Chapter,
+            { sceneId: fx.sceneId, params: fx.params, source: 'llm' },
+            sceneSignals,
+            sceneEvidence,
+            sceneInvestigation,
+            resolveSceneSignals,
+            [],
+          );
+          if (revalidated.source === 'llm') {
+            resolvedScenePlan[chapter] = revalidated;
+            log(`scene_repair OK case=${bundle.caseKey} chapter=${chapter}`);
+          } else {
+            log(
+              `scene_repair STILL_INVALID case=${bundle.caseKey} ` +
+                `chapter=${chapter}`,
+            );
+          }
+        }
+      }
+    }
 
     const { evidence: persistEvidence, cap: evCap } = boundPersistedEvidence(
       boundedEvidence,

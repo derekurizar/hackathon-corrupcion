@@ -1,4 +1,5 @@
 import { validateScenePlan } from '../scene-contract/validator.js';
+import { SCENES } from '../scene-contract/index.js';
 import { moduleLogger } from '../obs/logger.js';
 import type {
   Chapter,
@@ -7,8 +8,50 @@ import type {
   SceneInvestigation,
 } from '../scene-contract/types.js';
 import type { ScenePlanEntry } from '../schema/index.js';
+import type { SceneZodFailure } from './claude.js';
 
 const log = moduleLogger('scene');
+
+/** Compact `path: message` list for a failed scene-schema safeParse. */
+function formatZodIssues(params: unknown, sceneId: string): string[] {
+  const desc = SCENES[sceneId];
+  if (desc === undefined) return [];
+  const res = desc.schema.safeParse(params);
+  if (res.success) return [];
+  return res.error.issues
+    .slice(0, 20)
+    .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
+}
+
+/**
+ * Scenes whose LLM params failed ONLY the Zod schema gate (Rule 6) — i.e. the
+ * sceneId is a real scene for that chapter (Rule 1 passed) but the params
+ * don't satisfy the schema. These are exactly the chapters worth a targeted
+ * LLM repair (`ClaudeClient.repairScenes`) before any deterministic fallback.
+ */
+export function collectSceneZodFailures(
+  llmScenePlan: Record<string, { sceneId: string; params: Record<string, unknown> }>,
+  resolved: Record<string, ScenePlanEntry>,
+): SceneZodFailure[] {
+  const failures: SceneZodFailure[] = [];
+  for (const chapter of CHAPTERS) {
+    const r = resolved[chapter];
+    const llm = llmScenePlan[chapter];
+    if (r === undefined || r.source !== 'fallback' || llm === undefined) continue;
+    const desc = SCENES[llm.sceneId];
+    if (desc === undefined || desc.chapter !== chapter) continue; // Rule-1 fail, not Zod
+    const issues = formatZodIssues(llm.params, llm.sceneId);
+    if (issues.length === 0) continue;
+    failures.push({
+      chapter,
+      sceneId: llm.sceneId,
+      params: llm.params,
+      issues,
+      expectedFields: Object.keys(desc.kinds),
+    });
+  }
+  return failures;
+}
 
 /**
  * The fixed 7-chapter spine (idea/05). Every Investigation MUST carry an entry
@@ -68,12 +111,17 @@ export function resolveScenePlan(
     );
     out[chapter] = validated;
     const llmSceneId = llm?.sceneId ?? '';
-    const reason =
-      validated.source === 'fallback'
-        ? llmSceneId === ''
-          ? ' (reason: no llm sceneId)'
-          : ' (reason: validator rejected llm sceneId/params)'
-        : '';
+    let reason = '';
+    if (validated.source === 'fallback') {
+      if (llmSceneId === '') {
+        reason = ' (reason: no llm sceneId)';
+      } else if (SCENES[llmSceneId] === undefined || SCENES[llmSceneId]!.chapter !== chapter) {
+        reason = ' (reason: unknown sceneId / wrong chapter)';
+      } else {
+        const issues = formatZodIssues(llm?.params, llmSceneId);
+        reason = ` (reason: zod_fail issues=[${issues.join(' | ')}])`;
+      }
+    }
     log(
       `case=${caseKey} chapter=${chapter} ` +
         `llm_sceneId=${llmSceneId === '' ? 'NONE' : llmSceneId} ` +
