@@ -49,11 +49,25 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
   const p = params as EvidenceLedgerParams;
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.15 });
+  // `amount: 'some'` (threshold 0), NOT a fraction: the ledger can be far
+  // taller than the viewport, so any height-fraction threshold is unreachable
+  // and the reveal would never fire (cards stuck at opacity 0 → black scene).
+  const inView = useInView(ref, { once: true, amount: 'some' });
 
-  const items = [...p.items];
+  // Server payloads can carry the same (field,value,benchmark,comparison)
+  // tuple dozens of times (one row per matched contract). The ledger is a
+  // *traceable receipt of distinct signals*, so collapse exact duplicates —
+  // this is display-only and never touches server-side evidence indexing.
+  const items: { it: EvidenceItem; caption: string | undefined }[] = [];
+  const seen = new Set<string>();
+  p.items.forEach((it, idx) => {
+    const key = JSON.stringify([it.field, it.value, it.benchmark, it.comparison]);
+    if (seen.has(key)) return;
+    seen.add(key);
+    items.push({ it, caption: p.itemCaptions[idx] });
+  });
   if (p.order === 'field') {
-    items.sort((a, b) => a.field.localeCompare(b.field));
+    items.sort((a, b) => a.it.field.localeCompare(b.it.field));
   }
   // 'severity' and 'original' keep server order (severity-ordering is a
   // server concern; the SPA never reorders evidence it can't rank).
@@ -61,7 +75,11 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
   const container = {
     hidden: {},
     show: {
-      transition: reduce ? {} : { staggerChildren: 0.07 },
+      // Bound total stagger to ~2s regardless of row count so a long ledger
+      // doesn't take 8s+ to finish revealing.
+      transition: reduce
+        ? {}
+        : { staggerChildren: Math.min(0.07, 2 / Math.max(1, items.length)) },
     },
   };
   const card = {
@@ -82,8 +100,7 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
         animate={inView ? 'show' : 'hidden'}
         className="flex flex-col"
       >
-        {items.map((it, idx) => {
-          const caption = p.itemCaptions[idx];
+        {items.map(({ it, caption }, idx) => {
           const isKey = idx === 0; // highest-priority card = first
           return (
             <m.article

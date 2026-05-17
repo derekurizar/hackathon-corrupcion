@@ -150,7 +150,11 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
         <m.div
           className="mt-12 flex flex-wrap gap-3 border-t border-line pt-6"
           initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 0.4 } : { opacity: 0 }}
+          // Was 0.4 — combined with the already-dim text-dim color that
+          // crushed the "no public data" markers to near-invisible. The dim
+          // color + dashed border already signal "absent"; reveal at full
+          // opacity so the markers are legible.
+          animate={inView ? { opacity: 1 } : { opacity: 0 }}
           transition={{
             duration: reduce ? 0.1 : 0.4,
             delay: reduce ? 0 : 0.9,

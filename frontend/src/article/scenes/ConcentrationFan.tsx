@@ -157,27 +157,37 @@ export default function ConcentrationFan({ params }: ConcentrationFanProps) {
         </p>
       )}
 
+      {/*
+        Mount ReactFlow only once the scene is actually in view. Chapter
+        sections use `content-visibility: auto`, so this component otherwise
+        mounts while offscreen at zero size — ReactFlow's one-shot `fitView`
+        then runs against a 0×0 box, computing a broken viewport transform
+        that never re-fits, leaving the canvas visually empty. Deferring the
+        mount until `inView` guarantees a measured container.
+      */}
       <div className="h-[520px] w-full overflow-hidden rounded border border-line bg-bg-panel">
-        <ReactFlowProvider>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            panOnDrag={false}
-            zoomOnScroll={false}
-            zoomOnPinch={false}
-            zoomOnDoubleClick={false}
-            preventScrolling={false}
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background color="#262629" gap={28} size={1} />
-          </ReactFlow>
-        </ReactFlowProvider>
+        {inView && (
+          <ReactFlowProvider>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              panOnDrag={false}
+              zoomOnScroll={false}
+              zoomOnPinch={false}
+              zoomOnDoubleClick={false}
+              preventScrolling={false}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background color="#262629" gap={28} size={1} />
+            </ReactFlow>
+          </ReactFlowProvider>
+        )}
       </div>
 
       {/* Screen-reader equivalent of the canvas */}
