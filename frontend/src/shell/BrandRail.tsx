@@ -48,10 +48,15 @@ const CHAPTER_LABEL_KEY: Record<Chapter, I18nKey> = {
  * Left brand + chapter rail. Brand wordmark from BRAND (env-driven, never
  * hardcoded). The active chapter is tracked via ArticleState (Area 11): the
  * red pill indicator + numeral/label tier animate on the active item.
+ *
+ * The chapter spine only renders once an investigation is selected
+ * (`activeChapter !== null`). On the neutral routes (Dashboard, Newsroom,
+ * Methodology) the rail shows just the brand + site nav.
  */
 export function BrandRail() {
   const { t } = useTranslation();
   const { activeChapter } = useArticleState();
+  const articleSelected = activeChapter !== null;
   // Two-line stacked wordmark from BRAND.name (split on whitespace).
   const wordmarkLines = BRAND.name.split(/\s+/);
 
@@ -101,57 +106,59 @@ export function BrandRail() {
         ))}
       </nav>
 
-      <ol className="mt-10 flex flex-col" role="list">
-        {CHAPTER_ORDER.map((ch) => {
-          const active = activeChapter === ch;
-          return (
-            <li key={ch} aria-current={active ? 'step' : undefined}>
-              <div
-                className="flex items-center gap-3"
-                style={{ padding: '10px 16px 10px 14px' }}
-              >
-                <m.span
-                  aria-hidden="true"
-                  className="w-[2px] self-stretch rounded-full bg-accent-red"
-                  initial={false}
-                  animate={
-                    active
-                      ? { opacity: 1, scaleY: 1 }
-                      : { opacity: 0, scaleY: 0.6 }
-                  }
-                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ transformOrigin: 'center' }}
-                />
-                <m.span
-                  className={cn(
-                    'font-display',
-                    active ? 'text-text-hi' : 'text-text-dim',
-                  )}
-                  style={{
-                    fontSize: '28px',
-                    letterSpacing: '-0.03em',
-                    lineHeight: 1,
-                  }}
-                  initial={false}
-                  animate={{ opacity: active ? 1 : 0.4 }}
-                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      {articleSelected && (
+        <ol className="mt-10 flex flex-col" role="list">
+          {CHAPTER_ORDER.map((ch) => {
+            const active = activeChapter === ch;
+            return (
+              <li key={ch} aria-current={active ? 'step' : undefined}>
+                <div
+                  className="flex items-center gap-3"
+                  style={{ padding: '10px 16px 10px 14px' }}
                 >
-                  {CHAPTER_NUMERAL[ch]}
-                </m.span>
-                <span
-                  className={cn(
-                    'font-body uppercase transition-colors',
-                    active ? 'text-text-mid' : 'text-text-dim',
-                  )}
-                  style={{ fontSize: '11px', letterSpacing: '0.15em' }}
-                >
-                  {t(CHAPTER_LABEL_KEY[ch])}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+                  <m.span
+                    aria-hidden="true"
+                    className="w-[2px] self-stretch rounded-full bg-accent-red"
+                    initial={false}
+                    animate={
+                      active
+                        ? { opacity: 1, scaleY: 1 }
+                        : { opacity: 0, scaleY: 0.6 }
+                    }
+                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ transformOrigin: 'center' }}
+                  />
+                  <m.span
+                    className={cn(
+                      'font-display',
+                      active ? 'text-text-hi' : 'text-text-dim',
+                    )}
+                    style={{
+                      fontSize: '28px',
+                      letterSpacing: '-0.03em',
+                      lineHeight: 1,
+                    }}
+                    initial={false}
+                    animate={{ opacity: active ? 1 : 0.4 }}
+                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    {CHAPTER_NUMERAL[ch]}
+                  </m.span>
+                  <span
+                    className={cn(
+                      'font-body uppercase transition-colors',
+                      active ? 'text-text-mid' : 'text-text-dim',
+                    )}
+                    style={{ fontSize: '11px', letterSpacing: '0.15em' }}
+                  >
+                    {t(CHAPTER_LABEL_KEY[ch])}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
     </nav>
   );
 }
