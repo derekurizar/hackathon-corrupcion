@@ -37,17 +37,18 @@ export default function DossierCard({ item }: DossierCardProps) {
 
   return (
     <article className="relative flex flex-col gap-3 bg-bg-panel border border-line p-5 transition-colors hover:border-accent-red focus-within:border-accent-red">
-      {/* Full-card link (covers the whole surface, sits under the content). */}
+      {/* Full-card link — sits above the (non-interactive) content so the
+          entire surface is clickable. */}
       <Link
         to={`/investigation/${item.caseKey}`}
         aria-label={ariaLabel}
-        className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-bg-panel"
+        className="absolute inset-0 z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-bg-panel"
       />
 
       {/* Top row — kicker + priority chip */}
       <div className="relative z-10 flex items-start justify-between gap-3">
         <p className="kicker text-text-dim">
-          {t('newsroom.dossierLabel')} · {item.caseKey}
+          {t('newsroom.dossierLabel')}
         </p>
         <span
           className={`shrink-0 rounded-sm border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-label ${prio.cls}`}
