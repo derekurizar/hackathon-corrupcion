@@ -24,6 +24,22 @@ function isMonetaryField(field: string): boolean {
 }
 
 /**
+ * Formats a monetary amount as es-GT currency for narration prose. Never
+ * throws: a failed currency format degrades to the raw stringified number.
+ */
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('es-GT', {
+      style: 'currency',
+      currency: currency || 'GTQ',
+      maximumFractionDigits: 0,
+    }).format(Number(amount));
+  } catch {
+    return String(amount);
+  }
+}
+
+/**
  * Renders one evidence item as a human-readable `"<label>: <value>"` fact for
  * the elCaso fallback. Never throws: undefined values degrade to "—", and a
  * failed currency format degrades to the raw stringified number.
@@ -107,6 +123,7 @@ export function deriveFromEvidence(
 
     case 'sigueElDinero': {
       const amount = investigation.totalValue > 0 ? investigation.totalValue : firstNumber(flat);
+      const formattedTotal = formatMoney(amount, investigation.currency);
       return {
         buyer: investigation.buyer.name,
         totalValue: investigation.totalValue,
@@ -123,11 +140,17 @@ export function deriveFromEvidence(
         ],
         emphasisSupplierId: investigation.supplier.id,
         caption: PLACEHOLDER_ES,
-        narration: 'Distribución del valor total de contratos por proveedor.',
+        narration:
+          `${investigation.buyer.name} adjudicó ${formattedTotal} en el período ` +
+          `analizado. La distribución muestra la concentración del gasto entre ` +
+          `los proveedores identificados con señales de revisión.`,
       };
     }
 
     case 'lasConexiones': {
+      const concAmount =
+        investigation.totalValue > 0 ? investigation.totalValue : firstNumber(flat);
+      const formattedTotal = formatMoney(concAmount, investigation.currency);
       return {
         buyer: investigation.buyer.name,
         topShare: 1,
@@ -144,7 +167,10 @@ export function deriveFromEvidence(
           },
         ],
         caption: PLACEHOLDER_ES,
-        narration: 'Concentración de adjudicaciones para el comprador.',
+        narration:
+          `Las adjudicaciones de ${investigation.buyer.name} se concentran en ` +
+          `${investigation.supplier.displayNameEs}. Este proveedor representa una ` +
+          `proporción significativa del gasto total revisado (${formattedTotal}).`,
       };
     }
 
@@ -166,7 +192,11 @@ export function deriveFromEvidence(
         items,
         itemCaptions: items.map(() => PLACEHOLDER_ES),
         order: 'original',
-        narration: 'Señales de revisión detectadas en este expediente.',
+        narration:
+          `Se detectaron ${flat.length > 0 ? flat.length : 'varias'} señales de ` +
+          `revisión en los contratos entre ${investigation.buyer.name} y ` +
+          `${investigation.supplier.displayNameEs}. Los valores y patrones ` +
+          `identificados se presentan a continuación para su revisión editorial.`,
       };
     }
 
@@ -176,7 +206,10 @@ export function deriveFromEvidence(
         missingStages: ['published', 'tenderClose', 'contractSigned'],
         highlightIdx: 0,
         caption: PLACEHOLDER_ES,
-        narration: 'Cronología de hitos del proceso de contratación.',
+        narration:
+          `Cronología de los procesos de contratación entre ` +
+          `${investigation.buyer.name} y ${investigation.supplier.displayNameEs}. ` +
+          `Se destacan las etapas con datos disponibles y las ausentes.`,
       };
     }
 
