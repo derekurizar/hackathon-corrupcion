@@ -55,7 +55,7 @@ const CHAPTER_LABEL_KEY: Record<Chapter, I18nKey> = {
  */
 export function BrandRail() {
   const { t } = useTranslation();
-  const { activeChapter } = useArticleState();
+  const { activeChapter, scrollToChapter } = useArticleState();
   const articleSelected = activeChapter !== null;
   // Two-line stacked wordmark from BRAND.name (split on whitespace).
   const wordmarkLines = BRAND.name.split(/\s+/);
@@ -63,7 +63,7 @@ export function BrandRail() {
   return (
     <nav
       aria-label={t('chapter.rail')}
-      className="hidden h-full flex-col border-r border-line bg-bg-panel md:flex"
+      className="hidden h-full flex-col overflow-y-auto border-r border-line bg-bg-panel md:flex"
       style={{ width: 'var(--brand-rail-width)', padding: '24px 16px' }}
     >
       <NavLink
@@ -112,8 +112,10 @@ export function BrandRail() {
             const active = activeChapter === ch;
             return (
               <li key={ch} aria-current={active ? 'step' : undefined}>
-                <div
-                  className="flex items-center gap-3"
+                <button
+                  type="button"
+                  onClick={() => scrollToChapter(ch)}
+                  className="flex w-full cursor-pointer items-center gap-3 text-left transition-colors hover:bg-bg-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-bg-panel"
                   style={{ padding: '10px 16px 10px 14px' }}
                 >
                   <m.span
@@ -153,7 +155,7 @@ export function BrandRail() {
                   >
                     {t(CHAPTER_LABEL_KEY[ch])}
                   </span>
-                </div>
+                </button>
               </li>
             );
           })}

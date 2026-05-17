@@ -54,7 +54,7 @@ export default function Methodology() {
         transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
       >
         <p className="kicker">{t('methodology.kicker')}</p>
-        <h1 className="headline-display mt-2 text-display-xl text-text-hi text-balance">
+        <h1 className="headline-display mt-5 text-display-xl text-text-hi text-balance">
           {t('methodology.headline')}
         </h1>
         <p className="mt-6 max-w-[64ch] font-body text-body-lg leading-body text-text-mid text-pretty">

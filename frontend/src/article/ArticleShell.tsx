@@ -56,8 +56,13 @@ function ArticleErrorState() {
 export function ArticleShell() {
   const { caseKey } = useParams<{ caseKey: string }>();
   const { data, isLoading, error } = useInvestigation(caseKey ?? '');
-  const { setActiveChapter, setProgress, setAudioController, audioController } =
-    useArticleState();
+  const {
+    setActiveChapter,
+    setProgress,
+    setAudioController,
+    audioController,
+    registerScrollToChapter,
+  } = useArticleState();
   const { mode } = useMode();
   const { i18n } = useTranslation();
 
@@ -91,7 +96,12 @@ export function ArticleShell() {
   }, [data?.audio, audioController, i18n.language]);
 
   // Active-chapter tracking via IntersectionObserver (simpler than scroll
-  // math, no layout thrash). A chapter is "active" when ≥50% in view.
+  // math, no layout thrash). We watch a thin band in the vertical center of
+  // the scroll container (rootMargin shrinks the root to ~10svh): the chapter
+  // crossing that line is active. A `threshold: 0.5` would NEVER fire for a
+  // chapter taller than 2× the viewport (e.g. `evidencia`'s evidence grid),
+  // since its intersectionRatio caps at viewport/sectionHeight — that was the
+  // "scene 4 not recognized" bug. The center band is height-independent.
   useEffect(() => {
     if (!data) return;
     const root = scrollRef.current;
@@ -104,7 +114,7 @@ export function ArticleShell() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // Pick the most-visible intersecting chapter.
+        // Pick the most-visible chapter crossing the center band.
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
@@ -112,12 +122,31 @@ export function ArticleShell() {
           setActiveChapter(visible.target.id as Chapter);
         }
       },
-      { root, threshold: [0.5] },
+      { root, rootMargin: '-45% 0px -45% 0px', threshold: 0 },
     );
 
     for (const el of sections) observer.observe(el);
     return () => observer.disconnect();
   }, [data, setActiveChapter]);
+
+  // Bridge rail clicks → smooth scroll. Registered while the article is
+  // mounted; cleared on unmount so neutral routes get a no-op.
+  useEffect(() => {
+    registerScrollToChapter((ch) => {
+      const root = scrollRef.current;
+      const el = root?.querySelector<HTMLElement>(`#${ch}`);
+      if (!el) return;
+      setActiveChapter(ch); // optimistic — observer settles it during scroll
+      const reduce = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+      ).matches;
+      el.scrollIntoView({
+        behavior: reduce ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    });
+    return () => registerScrollToChapter(null);
+  }, [registerScrollToChapter, setActiveChapter]);
 
   // Reset rail state on unmount so other routes render the neutral spine.
   useEffect(() => {

@@ -1,7 +1,9 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -27,6 +29,10 @@ type ArticleState = {
   setActiveChapter: (ch: Chapter | null) => void;
   setProgress: (p: number) => void;
   setAudioController: (ac: AudioController | null) => void;
+  /** Smooth-scroll the article to a chapter (no-op off the article route). */
+  scrollToChapter: (ch: Chapter) => void;
+  /** ArticleShell registers the real scroller; null clears it on unmount. */
+  registerScrollToChapter: (fn: ((ch: Chapter) => void) | null) => void;
 };
 
 const ArticleStateContext = createContext<ArticleState | null>(null);
@@ -37,6 +43,19 @@ export function ArticleStateProvider({ children }: { children: ReactNode }) {
   const [audioController, setAudioController] =
     useState<AudioController | null>(null);
 
+  // The scroller lives in ArticleShell (it owns the scroll container ref).
+  // Held in a ref so registering it never re-renders rail/transport.
+  const scrollHandlerRef = useRef<((ch: Chapter) => void) | null>(null);
+  const registerScrollToChapter = useCallback(
+    (fn: ((ch: Chapter) => void) | null) => {
+      scrollHandlerRef.current = fn;
+    },
+    [],
+  );
+  const scrollToChapter = useCallback((ch: Chapter) => {
+    scrollHandlerRef.current?.(ch);
+  }, []);
+
   const value = useMemo<ArticleState>(
     () => ({
       activeChapter,
@@ -45,8 +64,16 @@ export function ArticleStateProvider({ children }: { children: ReactNode }) {
       setActiveChapter,
       setProgress,
       setAudioController,
+      scrollToChapter,
+      registerScrollToChapter,
     }),
-    [activeChapter, progress, audioController],
+    [
+      activeChapter,
+      progress,
+      audioController,
+      scrollToChapter,
+      registerScrollToChapter,
+    ],
   );
 
   return (

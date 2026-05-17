@@ -101,15 +101,6 @@
     line-height: var(--leading-display);
     text-wrap: balance;
   }
-  /* Small letter-spaced uppercase kicker. */
-  .kicker {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: var(--text-kicker);
-    letter-spacing: var(--tracking-kicker);
-    text-transform: uppercase;
-    color: var(--color-text-dim);
-    font-weight: 600;
-  }
   .text-balance {
     text-wrap: balance;
   }
@@ -119,14 +110,25 @@
 }
 
 @layer components {
+  /* Small letter-spaced uppercase kicker. Lives in the components layer so
+     any text-* utility (e.g. text-text-hi on the active rail link) cleanly
+     overrides its default color; bare .kicker keeps the dim default. */
+  .kicker {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: var(--text-kicker);
+    letter-spacing: var(--tracking-kicker);
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    font-weight: 600;
+  }
   .app-shell {
     display: grid;
     grid-template-areas:
       'rail main'
       'rail transport';
     grid-template-columns: var(--brand-rail-width) 1fr;
-    grid-template-rows: 1fr var(--transport-bar-height);
-    min-height: 100dvh;
+    grid-template-rows: minmax(0, 1fr) var(--transport-bar-height);
+    height: 100dvh;
     background-color: var(--color-bg-base);
     overflow: hidden;
   }
@@ -136,7 +138,7 @@
         'main'
         'transport';
       grid-template-columns: 1fr;
-      grid-template-rows: 1fr var(--transport-bar-height-mobile);
+      grid-template-rows: minmax(0, 1fr) var(--transport-bar-height-mobile);
     }
   }
 
