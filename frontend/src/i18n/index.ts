@@ -21,7 +21,10 @@ void i18n
     nonExplicitSupportedLngs: true,
     interpolation: { escapeValue: false },
     detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
+      // ES-first: ignore browser/HTML locale so the first load is always
+      // Spanish (fallbackLng). Only an explicit ES/EN toggle (cached to
+      // localStorage below) overrides it, and is remembered on later visits.
+      order: ['localStorage'],
       lookupLocalStorage: 'ep.lang',
       caches: ['localStorage'],
     },

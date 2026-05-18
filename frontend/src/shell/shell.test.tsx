@@ -26,7 +26,23 @@ function SelectedArticleRoute() {
   return <div>article content</div>;
 }
 
-function renderShell({ articleSelected = false }: { articleSelected?: boolean } = {}) {
+/**
+ * Podcast-mode stand-in: an investigation is open (`caseKey` set) but no
+ * chapter is active — the scrolling article is unmounted by the audio player.
+ * The transport must still expose the mode buttons so the user can leave.
+ */
+function CaseOnlyRoute() {
+  const { setCaseKey } = useArticleState();
+  useEffect(() => {
+    setCaseKey('gt-demo');
+  }, [setCaseKey]);
+  return <div>article content</div>;
+}
+
+function renderShell({
+  articleSelected = false,
+  caseOnly = false,
+}: { articleSelected?: boolean; caseOnly?: boolean } = {}) {
   // Mirror the real app composition (main.tsx wraps everything in a
   // QueryClientProvider) — the shell now reads cached investigation data for
   // the PDF export.
@@ -44,7 +60,13 @@ function renderShell({ articleSelected = false }: { articleSelected?: boolean } 
             <Route
               path="/"
               element={
-                articleSelected ? <SelectedArticleRoute /> : <div>route content</div>
+                caseOnly ? (
+                  <CaseOnlyRoute />
+                ) : articleSelected ? (
+                  <SelectedArticleRoute />
+                ) : (
+                  <div>route content</div>
+                )
               }
             />
           </Route>
@@ -136,6 +158,18 @@ describe('AppShell — brand + locale', () => {
     // VER selected → play/pause control appears (idle, so it reads "play").
     expect(
       screen.getByRole('button', { name: i18n.t('presentation.play') }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the mode buttons when only a case is selected (podcast mode)', () => {
+    // Podcast mode unmounts the scrolling article, so `activeChapter` is null
+    // and only `caseKey` is set — the buttons must still be reachable so the
+    // user is not trapped in the audio player.
+    renderShell({ caseOnly: true });
+    expect(screen.getByRole('button', { name: 'LEER' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'VER' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n.t('mode.podcast') }),
     ).toBeInTheDocument();
   });
 });

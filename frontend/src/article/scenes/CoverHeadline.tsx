@@ -101,7 +101,7 @@ export default function CoverHeadline({ params }: CoverHeadlineProps) {
 
         <div className="mt-4 overflow-hidden">
           <m.h1
-            className="headline-display text-display-2xl text-text-hi text-balance"
+            className="headline-display text-display-xl text-text-hi text-balance"
             initial={reduce ? { opacity: 0 } : { y: '110%', opacity: 0 }}
             animate={reduce ? { opacity: 1 } : { y: '0%', opacity: 1 }}
             transition={{

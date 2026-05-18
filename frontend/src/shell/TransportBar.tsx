@@ -53,7 +53,12 @@ export function TransportBar({ onExportPdf, pdfDisabled }: TransportBarProps) {
     return audioController.onPlayState(setPlaying);
   }, [audioController]);
 
-  const articleSelected = activeChapter !== null;
+  // An investigation is "selected" whenever its route is open. `caseKey` is
+  // set by ArticleShell regardless of mode, while `activeChapter` only tracks
+  // the scrolling article — so podcast mode (which unmounts that article) must
+  // fall back to `caseKey`, otherwise the mode buttons would vanish and trap
+  // the user in the audio player.
+  const articleSelected = activeChapter !== null || caseKey !== null;
   const pct = Math.round(progress * 100);
 
   const toggleLang = () => {
