@@ -144,33 +144,6 @@ export default function AwardTimeline({ params }: AwardTimelineProps) {
           );
         })}
       </div>
-
-      {/* Missing stages — honest "no public data" markers */}
-      {p.missingStages.length > 0 && (
-        <m.div
-          className="mt-12 flex flex-wrap gap-3 border-t border-line pt-6"
-          initial={{ opacity: 0 }}
-          // Was 0.4 — combined with the already-dim text-dim color that
-          // crushed the "no public data" markers to near-invisible. The dim
-          // color + dashed border already signal "absent"; reveal at full
-          // opacity so the markers are legible.
-          animate={inView ? { opacity: 1 } : { opacity: 0 }}
-          transition={{
-            duration: reduce ? 0.1 : 0.4,
-            delay: reduce ? 0 : 0.9,
-          }}
-        >
-          <span className="kicker w-full">{t('timeline.missing')}</span>
-          {p.missingStages.map((s) => (
-            <span
-              key={s}
-              className="rounded border border-dashed border-line px-3 py-1 font-body text-[11px] uppercase tracking-label text-text-dim"
-            >
-              {SIN_DATO}
-            </span>
-          ))}
-        </m.div>
-      )}
     </div>
   );
 }

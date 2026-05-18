@@ -81,9 +81,7 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
     show: {
       // Bound total stagger to ~2s regardless of row count so a long ledger
       // doesn't take 8s+ to finish revealing.
-      transition: reduce
-        ? {}
-        : { staggerChildren: Math.min(0.07, 2 / Math.max(1, items.length)) },
+      transition: reduce ? {} : { staggerChildren: Math.min(0.07, 2 / Math.max(1, items.length)) },
     },
   };
   const card = {
@@ -112,7 +110,7 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
               variants={card}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className={cn(
-                'mb-px grid grid-cols-1 gap-4 rounded border border-line bg-bg-panel-2 p-6 md:grid-cols-[2fr_2fr_2fr_3fr]',
+                'mb-px grid grid-cols-1 gap-4 rounded border border-line bg-bg-panel-2 p-6 md:grid-cols-[2fr_2fr_3fr]',
                 isKey && 'red-glow-box red-glow-pulse',
               )}
             >
@@ -124,16 +122,7 @@ export default function EvidenceLedger({ params }: EvidenceLedgerProps) {
                   {renderValue(it.value)}
                 </p>
               </div>
-              <div>
-                {it.benchmark !== undefined && (
-                  <>
-                    <p className="kicker">REF</p>
-                    <p className="font-body text-body-sm text-text-mid">
-                      {renderValue(it.benchmark)}
-                    </p>
-                  </>
-                )}
-              </div>
+
               <div>
                 <p className="max-w-[32ch] font-body text-body-sm text-text-mid text-pretty">
                   {caption ?? it.comparison ?? ''}
